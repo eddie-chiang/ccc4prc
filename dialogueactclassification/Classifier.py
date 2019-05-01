@@ -28,30 +28,31 @@ class Classifier:
                 pickle.dump(self.dialogue_act_classifier, f)
                 logger.info('Saved trained dialogue act classifier.')   
 
-    def dialogue_act_features(self, post: str):
+    def classify(self, dialgoue: str):
+        """Classify the given featureset.
+
+        Args:
+            dialogue (str): A sentence, a passage.
+
+        Returns: 
+            The dialogue act type.
+        """
+        unlabeled_data_features = self.__dialogue_act_features(dialgoue)
+        return self.dialogue_act_classifier.classify(unlabeled_data_features)
+
+    def __dialogue_act_features(self, dialogue: str):
         """Return a list of words extracted from the given post, as features for the post.
 
         Args:
-            post (str): A sentence, a passage.
+            dialogue (str): A sentence, a passage.
         
         Returns:
             A list of tuples ``(contains({word}), True)``.
         """
         features = {}
-        for word in nltk.word_tokenize(post):
+        for word in nltk.word_tokenize(dialogue):
             features['contains({})'.format(word.lower())] = True
         return features        
-
-    def classify(self, featureset):
-        """Classify the given featureset.
-
-        Args:
-            featureset: A list of features.
-
-        Returns: 
-            The dialogue act classification.
-        """
-        return self.dialogue_act_classifier.classify(featureset)
 
     def __train(self):
         # Extract the labeled basic messaging data.
@@ -60,7 +61,7 @@ class Classifier:
         self.logger.info(f'Loaded {len(posts)} posts from nps_chat corpus.')
 
         # Construct the training and test data by applying the feature extractor to each post, and create a new classifier.
-        featuresets = [(self.dialogue_act_features(post.text), post.get('class'))
+        featuresets = [(self.__dialogue_act_features(post.text), post.get('class'))
                         for post in posts]
         size = int(len(featuresets) * 0.1) # 10% to use as Training Set, 90% to use Test Set.
         train_set, test_set = featuresets[size:], featuresets[:size]
