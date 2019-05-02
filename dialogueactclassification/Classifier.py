@@ -11,9 +11,11 @@ class Classifier:
         trained_classifier_file (Path): A Path object that points to the trained classifier .pickle file.
         train_classifier (bool): If the trained classifier .pickle file already exists, whether to retrain the classifier.
             If the .pickle file does not exist, then a new dialogue act classifier will be trained, and save to trained_classifier_file.
+        test_set_percentage (int): The percentage of labeled NPS Chat corpus to be used as the test set (remainder will be used as the train set).
     """
-    def __init__(self, logger, trained_classifer_file, train_classifier: bool):
+    def __init__(self, logger, trained_classifer_file, train_classifier: bool, test_set_percentage: int):
         self.logger = logger
+        self.test_set_percentage = test_set_percentage
 
         if trained_classifer_file.is_file() and train_classifier == False:
             with open(trained_classifer_file, mode='rb') as f:
@@ -56,15 +58,14 @@ class Classifier:
 
     def __train(self):
         # Extract the labeled basic messaging data.
-        #posts = nltk.corpus.nps_chat.xml_posts()[:10000]
         posts = nltk.corpus.nps_chat.xml_posts()
         self.logger.info(f'Loaded {len(posts)} posts from nps_chat corpus.')
 
         # Construct the training and test data by applying the feature extractor to each post, and create a new classifier.
         featuresets = [(self.__dialogue_act_features(post.text), post.get('class'))
                         for post in posts]
-        size = int(len(featuresets) * 0.1) # 10% to use as Training Set, 90% to use Test Set.
-        train_set, test_set = featuresets[size:], featuresets[:size]
+        test_set_size = int(len(featuresets) * self.test_set_percentage / 100)
+        train_set, test_set = featuresets[test_set_size:], featuresets[:test_set_size]
         self.logger.info('Size of feature set: %d, train on %d instances, test on %d instances.' % (len(featuresets), len(train_set), len(test_set)))
 
         # Train the dialogue act classifier.
