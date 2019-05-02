@@ -37,7 +37,7 @@ class Classifier:
             dialogue (str): A sentence, a passage.
 
         Returns: 
-            The dialogue act type.
+            str: The dialogue act type.
         """
         unlabeled_data_features = self.__dialogue_act_features(dialgoue)
         return self.dialogue_act_classifier.classify(unlabeled_data_features)
