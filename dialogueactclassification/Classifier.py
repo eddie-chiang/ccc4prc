@@ -1,4 +1,5 @@
 import collections
+import logging
 import nltk
 import pickle
 from nltk.metrics.scores import precision, recall
@@ -7,28 +8,27 @@ class Classifier:
     """A classifier for dialogue act classification.
 
     Args:
-        logger (Logger): A logger.
         trained_classifier_file (Path): A Path object that points to the trained classifier .pickle file.
         train_classifier (bool): If the trained classifier .pickle file already exists, whether to retrain the classifier.
             If the .pickle file does not exist, then a new dialogue act classifier will be trained, and save to trained_classifier_file.
         test_set_percentage (int): The percentage of labeled NPS Chat corpus to be used as the test set (remainder will be used as the train set).
     """
-    def __init__(self, logger, trained_classifer_file, train_classifier: bool, test_set_percentage: int):
-        self.logger = logger
+    def __init__(self, trained_classifer_file, train_classifier: bool, test_set_percentage: int):
+        self.logger = logging.getLogger(self.__class__.__name__)
 
         test_set = None
         if trained_classifer_file.is_file() and train_classifier == False:
             with open(trained_classifer_file, mode='rb') as f:
                 self.dialogue_act_classifier = pickle.load(f)
-                logger.info('Loaded trained dialogue act classifier.')
+                self.logger.info('Loaded trained dialogue act classifier.')
             _, _, test_set = self.__get_featuresets(test_set_percentage)            
         else:
-            logger.info('Training dialogue act classifier.')
+            self.logger.info('Training dialogue act classifier.')
             self.dialogue_act_classifier, test_set = self.__train(test_set_percentage)
             
             with open(trained_classifer_file, mode='wb') as f:
                 pickle.dump(self.dialogue_act_classifier, f)
-                logger.info('Saved trained dialogue act classifier.')   
+                self.logger.info('Saved trained dialogue act classifier.')   
 
         self.__log_accuracy_precision_recall(self.dialogue_act_classifier, test_set)
 
