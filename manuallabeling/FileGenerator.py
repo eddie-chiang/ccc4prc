@@ -33,7 +33,7 @@ class FileGenerator:
             dict_reader = DictReader(input_csvfile, delimiter=',')
 
             with open(self.output_csv_file, mode='w', newline='', encoding='utf-8') as output_csvfile:
-                field_names = dict_reader.fieldnames + ['dialogue_act_classification_manual'] + ['dialogue_act_classification_ml']
+                field_names = dict_reader.fieldnames + ['pr_url'] + ['dialogue_act_classification_manual'] + ['dialogue_act_classification_ml']
                 csv_writer = DictWriter(output_csvfile, field_names, delimiter=',')
                 csv_writer.writeheader()
 
@@ -44,6 +44,9 @@ class FileGenerator:
                 progress_pct = 0
 
                 for row in sample_rows_generator_expression: 
+                    # Example: https://api.github.com/repos/hhru/nuts-and-bolts to https://github.com/hhru/nuts-and-bolts/pull/38
+                    row['pr_url'] = row['project_url'].replace('https://api.github.com/repos', 'https://github.com')
+                    row['pr_url'] = row['pr_url'] + '/pull/' + row['pullreq_id']
                     csv_writer.writerow(row)
                     ctr += 1
                     progress_pct_floor = math.floor(ctr / total_samples * 100)
