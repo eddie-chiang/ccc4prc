@@ -34,20 +34,20 @@ class CommentLoader:
 
         # Creates an SSH tunnel
         self.logger.info(f'Creating an SSH tunnel to {ssh_host}:{ssh_port}')
-        self.server = SSHTunnelForwarder(("dutihr.st.ewi.tudelft.nl", 22),
-                                    ssh_username = "ghtorrent",
-                                    ssh_pkey = "/Users/eddiechiang/.ssh/id_rsa",
-                                    ssh_private_key_password = "",
-                                    remote_bind_address=('dutihr.st.ewi.tudelft.nl', 27017))
+        self.server = SSHTunnelForwarder((ssh_host, ssh_port),
+                                    ssh_username = ssh_username,
+                                    ssh_pkey = ssh_pkey,
+                                    ssh_private_key_password = db_password,
+                                    remote_bind_address=(db_host, db_port))
         self.server.start()
         
         client = MongoClient('127.0.0.1',
                             self.server.local_bind_port,
-                            username = 'ghtorrentro',
-                            password = 'ghtorrentro',
-                            authSource = 'github',
+                            username = db_username,
+                            password = db_password,
+                            authSource = db,
                             authMechanism = 'SCRAM-SHA-1')
-        self.db = client['github']
+        self.db = client[db]
         self.collection = self.db['pull_request_comments']
 
         try:
