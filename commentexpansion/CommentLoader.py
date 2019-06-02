@@ -67,7 +67,7 @@ class CommentLoader:
     def __exit__(self, exc_type, exc_value, traceback):
         self.server.stop()  # Close SSH tunnel
 
-    def Load(self, owner: str, repo: str, pullreq_id: int, comment_id: int):
+    def load(self, owner: str, repo: str, pullreq_id: int, comment_id: int):
         """Load the full comment.
 
         Args:
