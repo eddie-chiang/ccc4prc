@@ -82,4 +82,8 @@ class CommentLoader:
                  "id": comment_id}
 
         doc = self.collection.find_one(query)
-        return doc['body']
+
+        if doc is not None:
+            return doc['body']
+        else:
+            return None
