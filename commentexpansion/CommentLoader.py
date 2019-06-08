@@ -1,4 +1,5 @@
 import logging
+import time
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from sshtunnel import SSHTunnelForwarder
@@ -33,39 +34,52 @@ class CommentLoader:
                  db_password: str,
                  db: str):
         self.logger = logging.getLogger(self.__class__.__name__)
-
-        # Creates an SSH tunnel
-        self.logger.info(f'Creating an SSH tunnel to {ssh_host}:{ssh_port}')
         self.server = SSHTunnelForwarder((ssh_host, ssh_port),
                                          ssh_username=ssh_username,
                                          ssh_pkey=ssh_pkey,
                                          ssh_private_key_password=db_password,
                                          remote_bind_address=(db_host, db_port))
-        self.server.start()
 
-        client = MongoClient('127.0.0.1',
-                             self.server.local_bind_port,
-                             username=db_username,
-                             password=db_password,
-                             authSource=db,
-                             authMechanism='SCRAM-SHA-1')
-        self.db = client[db]
-        self.collection = self.db['pull_request_comments']
-
-        try:
-            self.logger.info(
-                f'Connecting to MongoDB 127.0.0.1:{self.server.local_bind_port}.')
-            # The ismaster command is cheap and does not require auth.
-            client.admin.command('ismaster')
-            self.logger.info('Successfully connected to MongoDB server.')
-        except ConnectionFailure:
-            self.logger.errors('MongoDB server is not available.')
+        self.db_username = db_username
+        self.db_password = db_password
+        self.db = db
+        self.collection = None
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.server.stop()  # Close SSH tunnel
+
+    def __get_connection(self, server: SSHTunnelForwarder):
+        if server.is_active:
+            return self.collection
+
+        self.logger.info(
+            f'SSH Tunnel is not active, connecting to {server.ssh_host}:{server.ssh_port}...')
+
+        while True:
+            try:
+                server.restart()
+
+                mongo_client = MongoClient('127.0.0.1',
+                                           server.local_bind_port,
+                                           username=self.db_username,
+                                           password=self.db_password,
+                                           authSource=self.db,
+                                           authMechanism='SCRAM-SHA-1')
+                mongo_db = mongo_client[self.db]
+                self.collection = mongo_db['pull_request_comments']
+
+                self.logger.info(
+                    f'Connecting to MongoDB 127.0.0.1:{server.local_bind_port}.')
+                # The ismaster command is cheap and does not require auth.
+                mongo_client.admin.command('ismaster')
+                self.logger.info('Successfully connected to MongoDB server.')
+                return self.collection
+            except ConnectionFailure as e:
+                self.logger.error(f'MongoDB server is not available, error {e}, retry after 5 seconds.')
+                time.sleep(5)
 
     def load(self, owner: str, repo: str, pullreq_id: int, comment_id: int):
         """Load the full comment.
@@ -80,8 +94,8 @@ class CommentLoader:
                  "repo": repo,
                  "pullreq_id": pullreq_id,
                  "id": comment_id}
-
-        doc = self.collection.find_one(query)
+        collection = self.__get_connection(self.server)
+        doc = collection.find_one(query)
 
         if doc is not None:
             return doc['body']
