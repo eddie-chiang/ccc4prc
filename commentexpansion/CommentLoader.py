@@ -1,5 +1,6 @@
 import logging
 import time
+from playsound import playsound
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 from sshtunnel import SSHTunnelForwarder
@@ -19,7 +20,7 @@ class CommentLoader:
         db_username (str): MongoDB username
         db_password (str): MongoDB password
         db (str): MongoDB database
-        collection (str): MongoDB collection
+        error_alert_sound (str): A path pointing to the error alert sound.
     """
 
     def __init__(self,
@@ -32,7 +33,8 @@ class CommentLoader:
                  db_port: int,
                  db_username: str,
                  db_password: str,
-                 db: str):
+                 db: str,
+                 error_alert_sound: str):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.server = SSHTunnelForwarder((ssh_host, ssh_port),
                                          ssh_username=ssh_username,
@@ -44,6 +46,7 @@ class CommentLoader:
         self.db_password = db_password
         self.db = db
         self.collection = None
+        self.error_alert_sound = error_alert_sound
 
     def __enter__(self):
         return self
@@ -58,28 +61,22 @@ class CommentLoader:
         self.logger.info(
             f'SSH Tunnel is not active, connecting to {server.ssh_host}:{server.ssh_port}...')
 
-        while True:
-            try:
-                server.restart()
+        server.restart()
+        mongo_client = MongoClient('127.0.0.1',
+                                   server.local_bind_port,
+                                   username=self.db_username,
+                                   password=self.db_password,
+                                   authSource=self.db,
+                                   authMechanism='SCRAM-SHA-1')
+        mongo_db = mongo_client[self.db]
+        self.collection = mongo_db['pull_request_comments']
 
-                mongo_client = MongoClient('127.0.0.1',
-                                           server.local_bind_port,
-                                           username=self.db_username,
-                                           password=self.db_password,
-                                           authSource=self.db,
-                                           authMechanism='SCRAM-SHA-1')
-                mongo_db = mongo_client[self.db]
-                self.collection = mongo_db['pull_request_comments']
-
-                self.logger.info(
-                    f'Connecting to MongoDB 127.0.0.1:{server.local_bind_port}.')
-                # The ismaster command is cheap and does not require auth.
-                mongo_client.admin.command('ismaster')
-                self.logger.info('Successfully connected to MongoDB server.')
-                return self.collection
-            except ConnectionFailure as e:
-                self.logger.error(f'MongoDB server is not available, error {e}, retry after 5 seconds.')
-                time.sleep(5)
+        self.logger.info(
+            f'Connecting to MongoDB 127.0.0.1:{server.local_bind_port}.')
+        # The ismaster command is cheap and does not require auth.
+        mongo_client.admin.command('ismaster')
+        self.logger.info('Successfully connected to MongoDB server.')
+        return self.collection
 
     def load(self, owner: str, repo: str, pullreq_id: int, comment_id: int):
         """Load the full comment.
@@ -94,8 +91,18 @@ class CommentLoader:
                  "repo": repo,
                  "pullreq_id": pullreq_id,
                  "id": comment_id}
-        collection = self.__get_connection(self.server)
-        doc = collection.find_one(query)
+
+        success = False
+        while success != True:
+            try:
+                collection = self.__get_connection(self.server)
+                doc = collection.find_one(query)
+                success = True
+            except Exception as e:
+                playsound(self.error_alert_sound, False)
+                self.logger.error(
+                    f'Failed to load comment, owner: {owner}, repo: {repo}, pullreq_id: {pullreq_id}, comment_id: {comment_id}, error: {e}, retry after 5 seconds')
+                time.sleep(5)
 
         if doc is not None:
             return doc['body']
