@@ -20,7 +20,7 @@ class CommentLoader:
         db_username (str): MongoDB username
         db_password (str): MongoDB password
         db (str): MongoDB database
-        error_alert_sound (str): A path pointing to the error alert sound.
+        error_alert_sound_file (str): A path pointing to the error alert sound.
     """
 
     def __init__(self,
@@ -34,7 +34,7 @@ class CommentLoader:
                  db_username: str,
                  db_password: str,
                  db: str,
-                 error_alert_sound: str):
+                 error_alert_sound_file: str):
         self.logger = logging.getLogger(self.__class__.__name__)
         self.server = SSHTunnelForwarder((ssh_host, ssh_port),
                                          ssh_username=ssh_username,
@@ -46,7 +46,7 @@ class CommentLoader:
         self.db_password = db_password
         self.db = db
         self.collection = None
-        self.error_alert_sound = error_alert_sound
+        self.error_alert_sound_file = error_alert_sound_file
 
     def __enter__(self):
         return self
@@ -99,7 +99,7 @@ class CommentLoader:
                 doc = collection.find_one(query)
                 success = True
             except Exception as e:
-                playsound(self.error_alert_sound, False)
+                playsound(self.error_alert_sound_file, False)
                 self.logger.error(
                     f'Failed to load comment, owner: {owner}, repo: {repo}, pullreq_id: {pullreq_id}, comment_id: {comment_id}, error: {e}, retry after 5 seconds')
                 time.sleep(5)
