@@ -100,8 +100,8 @@ class CommentLoader:
                 success = True
             except Exception as e:
                 playsound(self.error_alert_sound_file, False)
-                self.logger.error(
-                    f'Failed to load comment, owner: {owner}, repo: {repo}, pullreq_id: {pullreq_id}, comment_id: {comment_id}, error: {e}, retry after 5 seconds')
+                self.logger.exception(
+                    f'Failed to load comment, owner: {owner}, repo: {repo}, pullreq_id: {pullreq_id}, comment_id: {comment_id}, retry after 5 seconds.')
                 time.sleep(5)
 
         if doc is not None:
