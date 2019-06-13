@@ -86,6 +86,9 @@ class CommentLoader:
             repo (str): GitHub repository name.
             pullreq_id (int): Pull request ID.
             comment_id (int): Pull request comment ID.
+
+        Returns:
+            str: The full comment text. None if the comment ID does not exist in MongoDB.
         """
         query = {"owner": owner,
                  "repo": repo,
