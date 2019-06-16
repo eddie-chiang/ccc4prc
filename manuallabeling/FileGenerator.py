@@ -26,12 +26,18 @@ class FileGenerator:
         data_frame = pandas.read_csv(csv_file)
         total_rows = data_frame.shape[0]
         sample_size = self.__sample_size(total_rows)
-        self.logger.info(f'No. of rows in {csv_file}: {total_rows}, sample size of 95% confidence level and 5% confidence interval: {sample_size}')
+        self.logger.info(
+            f'No. of rows in {csv_file}: {total_rows}, sample size of 95% confidence level and 5% confidence interval: {sample_size}')
 
         # Generate unique random numbers.
         random_numbers = random.sample(range(1, total_rows), sample_size)
 
-        return random_numbers
+        data_frame = data_frame.iloc[random_numbers]
+
+        data_frame.to_csv(final_csv, index=False, header=True, mode='w')
+
+        
+
     #     with open(self.random_row_list_file, mode='r') as random_row_list_file:
     #         random_line_list_reader = reader(random_row_list_file)
     #         random_line_list_2d = list(random_line_list_reader) # 2D array, [row: [value]].
