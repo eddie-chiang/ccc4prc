@@ -32,6 +32,7 @@ class FileGenerator:
 
         data_frame = data_frame.iloc[random_numbers]
 
+        data_frame['dialogue_act_classification_manual'] = ""
         data_frame['comment_url'] = data_frame.apply(
             lambda row: self.__get_comment_url(
                 row['project_url'],
