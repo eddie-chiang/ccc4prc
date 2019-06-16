@@ -16,10 +16,18 @@ class FileGenerator:
 
         Args:
             source_csv_file (Path): A Path object that points to the source .csv file.
+
+        Returns:
+            Path: The file path of the output file.
         """
 
         final_csv = Path(csv_file.absolute().as_posix().replace(
-            '.csv', '_manual_labelling.csv'))
+            '.csv', '_manual_labeling.csv'))
+
+        if final_csv.exists():
+            self.logger.info(
+                f'Output file already exists, stop further processing: {final_csv}')
+            return final_csv
 
         data_frame = pandas.read_csv(csv_file)
         total_rows = data_frame.shape[0]
@@ -42,6 +50,7 @@ class FileGenerator:
 
         data_frame.to_csv(final_csv, index=False, header=True, mode='w')
         self.logger.info(f'Generation completed, output file: {final_csv}')
+        return final_csv
 
     def __sample_size(self, population_size: int):
         z_score = 1.96  # 95% Confidence Level
