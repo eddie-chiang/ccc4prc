@@ -40,13 +40,17 @@ class FileGenerator:
 
         data_frame = data_frame.iloc[random_numbers]
 
-        data_frame['dialogue_act_classification_manual'] = ""
+        # Drop the dialogue_act_classification_ml to allow unbiased manual DAC.
+        data_frame.drop(columns='dialogue_act_classification_ml', inplace=True)
+
         data_frame['comment_url'] = data_frame.apply(
             lambda row: self.__get_comment_url(
                 row['project_url'],
                 int(row['pullreq_id']),
                 int(row['comment_id'])),
             axis=1)
+        data_frame['dialogue_act_classification_manual'] = ""
+        data_frame['topic_keywords'] = ""
 
         data_frame.to_csv(final_csv, index=False, header=True, mode='w')
         self.logger.info(f'Generation completed, output file: {final_csv}')
