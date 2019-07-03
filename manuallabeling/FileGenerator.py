@@ -29,7 +29,7 @@ class FileGenerator:
                 f'Output file already exists, stop further processing: {final_csv}')
             return final_csv
 
-        data_frame = pandas.read_csv(csv_file)
+        data_frame = pandas.read_csv(csv_file, na_filter=False)
         total_rows = data_frame.shape[0]
         sample_size = self.__sample_size(total_rows)
         self.logger.info(
