@@ -43,12 +43,6 @@ class FileGenerator:
         # Drop the dialogue_act_classification_ml to allow unbiased manual DAC.
         data_frame.drop(columns='dialogue_act_classification_ml', inplace=True)
 
-        data_frame['comment_url'] = data_frame.apply(
-            lambda row: self.__get_comment_url(
-                row['project_url'],
-                int(row['pullreq_id']),
-                int(row['comment_id'])),
-            axis=1)
         data_frame['dialogue_act_classification_manual'] = ""
         data_frame['topic_keywords'] = ""
 
@@ -68,14 +62,3 @@ class FileGenerator:
         sample_size = int(math.ceil(sample_size))
 
         return sample_size
-
-    def __get_comment_url(self, project_url: str, pullreq_id: int, comment_id: int):
-        """Gets the Comment link.
-        The format is: https://github.com/{owner}/{repo}/pull/{pullreq_id}#discussion_r{comment_id}
-        """
-
-        comment_url = project_url.replace(
-            'https://api.github.com/repos', 'https://github.com')
-        comment_url = comment_url + '/pull/' + \
-            str(pullreq_id) + '#discussion_r' + str(comment_id)
-        return comment_url
