@@ -1,5 +1,11 @@
 import logging
+
 from pandas import DataFrame
+from sklearn import preprocessing
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+
 
 class MachineLearning:
     """A machine learning class for supervised learning to create a model."""
@@ -17,6 +23,16 @@ class MachineLearning:
         """
         model = None
 
-        self.logger.info(data_frame.describe())
+        # Split data into training and test sets.
+        y = data_frame['code_comprehension_related']
+        X = data_frame.drop(columns='code_comprehension_related')
+        X_train, X_test, y_train, y_test = train_test_split(X,
+                                                            y,
+                                                            test_size=0.2,  # 20%
+                                                            random_state=2019,  # An arbitrary seed so the results can be reproduced
+                                                            stratify=y)  # Stratify the sample by the target (i.e. code_comprehension_related)
+
+        # Declare data preprocessing steps.
+        # pipeline = make_pipeline(preprocessing.StandardScaler(), )
 
         return model
