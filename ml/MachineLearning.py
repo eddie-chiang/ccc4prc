@@ -33,6 +33,12 @@ class MachineLearning:
                                                             stratify=y)  # Stratify the sample by the target (i.e. code_comprehension_related)
 
         # Declare data preprocessing steps.
+        # Encode features, i.e. convert string labels into numbers.
+        # label_encoder = preprocessing.LabelEncoder()
+        # dialogue_act_classification_encoded = 
+        # dialogue_act_classification_manual - this still needs to be cross checked with the NLTK classified result.
+        # comment_is_by_author
+
         # pipeline = make_pipeline(preprocessing.StandardScaler(), )
 
         return model
