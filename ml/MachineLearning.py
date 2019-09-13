@@ -34,10 +34,17 @@ class MachineLearning:
 
         # Declare data preprocessing steps.
         # Encode features, i.e. convert string labels into numbers.
-        # label_encoder = preprocessing.LabelEncoder()
-        # dialogue_act_classification_encoded = 
-        # dialogue_act_classification_manual - this still needs to be cross checked with the NLTK classified result.
-        # comment_is_by_author
+        label_encoder = preprocessing.LabelEncoder()
+
+        dialogue_act_classification_ml = data_frame['dialogue_act_classification_ml']
+        dialogue_act_classification_ml_encoded = label_encoder.fit_transform(dialogue_act_classification_ml)
+
+        comment_is_by_author = data_frame['comment_is_by_author']
+        comment_is_by_author_encoded = label_encoder.fit_transform(comment_is_by_author)
+
+        # Combinig features into single listof tuples
+        features = zip(dialogue_act_classification_ml_encoded, comment_is_by_author_encoded)
+
 
         # pipeline = make_pipeline(preprocessing.StandardScaler(), )
 
