@@ -4,6 +4,7 @@ from pandas import DataFrame
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import make_pipeline
 
 
@@ -21,7 +22,9 @@ class MachineLearning:
         Returns:
             model: a trained machine learning model.
         """
-        model = None
+        
+        # Create a Naive Bayes Gaussian Classifier.
+        model = GaussianNB()
 
         # Split data into training and test sets.
         y = data_frame['code_comprehension_related']
@@ -42,8 +45,17 @@ class MachineLearning:
         comment_is_by_author = data_frame['comment_is_by_author']
         comment_is_by_author_encoded = label_encoder.fit_transform(comment_is_by_author)
 
+        code_comprehension_related = data_frame['code_comprehension_related']
+        label = label_encoder.fit_transform(code_comprehension_related)
+
         # Combinig features into single listof tuples
         features = zip(dialogue_act_classification_ml_encoded, comment_is_by_author_encoded)
+
+        # Train the model using the training sets
+        model.fit(features, label)
+
+        #Predict Output
+        predicted = model.predict([[0,2]]) # 0:Overcast, 2:Mild
 
 
         # pipeline = make_pipeline(preprocessing.StandardScaler(), )
