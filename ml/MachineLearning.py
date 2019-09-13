@@ -57,6 +57,7 @@ class MachineLearning:
         #Predict Output
         predicted = model.predict([[0,2]]) # 0:Overcast, 2:Mild
 
+        # https://www.datacamp.com/community/tutorials/naive-bayes-scikit-learn
 
         # pipeline = make_pipeline(preprocessing.StandardScaler(), )
 
