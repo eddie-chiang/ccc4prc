@@ -5,6 +5,7 @@ from pandas import DataFrame
 from sklearn import metrics
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.pipeline import make_pipeline
@@ -42,8 +43,8 @@ class MachineLearning:
         comment_is_by_author_encoded = label_encoder.fit_transform(
             comment_is_by_author)
 
-        code_comprehension_related = data_frame['code_comprehension_related']
-        label = label_encoder.fit_transform(code_comprehension_related)
+        # body = data_frame['body']
+        # count_vectorizer = CountVectorizer(stop_words='english')
 
         # Combinig features into single listof tuples
         features = list(zip(dialogue_act_classification_ml_encoded,
@@ -64,10 +65,6 @@ class MachineLearning:
         y_pred = model.predict(X_test)
 
         # Model accuracy, how often is the classifier correct?
-        self.logger.info(f'Accuracy: {metrics.accuracy_score(y_test, y_pred)}')
-        
-        for class_label in numpy.unique(y_test):
-            self.logger.info(f'Precision for "{class_label}": {metrics.precision_score(y_test, y_pred, pos_label=class_label)}')
-            self.logger.info(f'Recall for "{class_label}": {metrics.recall_score(y_test, y_pred, pos_label=class_label)}')        
+        self.logger.info(f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
         return model
