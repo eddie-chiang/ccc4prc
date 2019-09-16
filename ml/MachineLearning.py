@@ -1,4 +1,5 @@
 import logging
+import numpy
 
 from pandas import DataFrame
 from sklearn import metrics
@@ -23,7 +24,9 @@ class MachineLearning:
         Returns:
             model: a trained machine learning model.
         """
+        return self.__perform_naive_bayes(data_frame)        
 
+    def __perform_naive_bayes(self, data_frame: DataFrame):
         # Create a Naive Bayes Gaussian Classifier.
         model = GaussianNB()
 
@@ -62,5 +65,9 @@ class MachineLearning:
 
         # Model accuracy, how often is the classifier correct?
         self.logger.info(f'Accuracy: {metrics.accuracy_score(y_test, y_pred)}')
+        
+        for class_label in numpy.unique(y_test):
+            self.logger.info(f'Precision for "{class_label}": {metrics.precision_score(y_test, y_pred, pos_label=class_label)}')
+            self.logger.info(f'Recall for "{class_label}": {metrics.recall_score(y_test, y_pred, pos_label=class_label)}')        
 
         return model
