@@ -5,11 +5,12 @@ from pandas import DataFrame
 from sklearn import metrics
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import make_pipeline
+from sklearn.pipeline import Pipeline
 
 
 class MachineLearning:
@@ -26,7 +27,7 @@ class MachineLearning:
         Returns:
             model: a trained machine learning model.
         """
-        return self.__perform_naive_bayes(data_frame)        
+        return self.__perform_naive_bayes(data_frame)
 
     def __perform_naive_bayes(self, data_frame: DataFrame):
         # # Create a Gaussian Naive Bayes classifier.
@@ -70,14 +71,43 @@ class MachineLearning:
 
         # return model
 
+        # # Create a Multinomial Naive Bayes classifier.
+        # # Make a pipeline for data preprocessing.
+        # # Encode features, i.e. convert string labels into numbers.
+        # classifier = make_pipeline(preprocessing.OneHotEncoder(), MultinomialNB())
+
+        # # Split data into training and test sets.
+        # target = data_frame['code_comprehension_related']
+        # features = data_frame[['dialogue_act_classification_ml', 'comment_is_by_author']]
+        # X_train, X_test, y_train, y_test = train_test_split(features,
+        #                                                     target,
+        #                                                     test_size=0.2,  # 20%
+        #                                                     random_state=2019,  # An arbitrary seed so the results can be reproduced
+        #                                                     stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
+
+        # # Train the model using the training sets.
+        # classifier.fit(X_train, y_train)
+
+        # # Predict the response for test set.
+        # y_pred = classifier.predict(X_test)
+
+        # # Model accuracy, how often is the classifier correct?
+        # self.logger.info(f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+
+        # return classifier
+
         # Create a Multinomial Naive Bayes classifier.
         # Make a pipeline for data preprocessing.
         # Encode features, i.e. convert string labels into numbers.
-        classifier = make_pipeline(preprocessing.OneHotEncoder(), MultinomialNB())
+        classifier = Pipeline([
+            ('cv', CountVectorizer(stop_words='english')),
+            ('tfidf', TfidfTransformer()),
+            ('mnb', MultinomialNB())
+        ])
 
         # Split data into training and test sets.
         target = data_frame['code_comprehension_related']
-        features = data_frame[['dialogue_act_classification_ml', 'comment_is_by_author']]
+        features = data_frame['body']
         X_train, X_test, y_train, y_test = train_test_split(features,
                                                             target,
                                                             test_size=0.2,  # 20%
@@ -91,6 +121,10 @@ class MachineLearning:
         y_pred = classifier.predict(X_test)
 
         # Model accuracy, how often is the classifier correct?
-        self.logger.info(f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+        self.logger.info(
+            f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
         return classifier
+
+        ## TODO Stemming
+        ## TODO Lemmatization
