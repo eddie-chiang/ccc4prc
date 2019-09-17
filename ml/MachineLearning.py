@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
+from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import make_pipeline
 
 
@@ -28,30 +29,55 @@ class MachineLearning:
         return self.__perform_naive_bayes(data_frame)        
 
     def __perform_naive_bayes(self, data_frame: DataFrame):
-        # Create a Naive Bayes Gaussian Classifier.
-        model = GaussianNB()
+        # # Create a Gaussian Naive Bayes classifier.
+        # model = GaussianNB()
 
-        # Declare data preprocessing steps.
+        # # Declare data preprocessing steps.
+        # # Encode features, i.e. convert string labels into numbers.
+        # label_encoder = preprocessing.LabelEncoder()
+
+        # dialogue_act_classification_ml = data_frame['dialogue_act_classification_ml']
+        # dialogue_act_classification_ml_encoded = label_encoder.fit_transform(
+        #     dialogue_act_classification_ml)
+
+        # comment_is_by_author = data_frame['comment_is_by_author']
+        # comment_is_by_author_encoded = label_encoder.fit_transform(
+        #     comment_is_by_author)
+
+        # # body = data_frame['body']
+        # # count_vectorizer = CountVectorizer(stop_words='english')
+
+        # # Combinig features into single listof tuples
+        # features = list(zip(dialogue_act_classification_ml_encoded,
+        #                     comment_is_by_author_encoded))
+
+        # # Split data into training and test sets.
+        # target = data_frame['code_comprehension_related']
+        # X_train, X_test, y_train, y_test = train_test_split(features,
+        #                                                     target,
+        #                                                     test_size=0.2,  # 20%
+        #                                                     random_state=2019,  # An arbitrary seed so the results can be reproduced
+        #                                                     stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
+
+        # # Train the model using the training sets.
+        # model.fit(X_train, y_train)
+
+        # # Predict the response for test set.
+        # y_pred = model.predict(X_test)
+
+        # # Model accuracy, how often is the classifier correct?
+        # self.logger.info(f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+
+        # return model
+
+        # Create a Multinomial Naive Bayes classifier.
+        # Make a pipeline for data preprocessing.
         # Encode features, i.e. convert string labels into numbers.
-        label_encoder = preprocessing.LabelEncoder()
-
-        dialogue_act_classification_ml = data_frame['dialogue_act_classification_ml']
-        dialogue_act_classification_ml_encoded = label_encoder.fit_transform(
-            dialogue_act_classification_ml)
-
-        comment_is_by_author = data_frame['comment_is_by_author']
-        comment_is_by_author_encoded = label_encoder.fit_transform(
-            comment_is_by_author)
-
-        # body = data_frame['body']
-        # count_vectorizer = CountVectorizer(stop_words='english')
-
-        # Combinig features into single listof tuples
-        features = list(zip(dialogue_act_classification_ml_encoded,
-                            comment_is_by_author_encoded))
+        classifier = make_pipeline(preprocessing.OneHotEncoder(), MultinomialNB())
 
         # Split data into training and test sets.
         target = data_frame['code_comprehension_related']
+        features = data_frame[['dialogue_act_classification_ml', 'comment_is_by_author']]
         X_train, X_test, y_train, y_test = train_test_split(features,
                                                             target,
                                                             test_size=0.2,  # 20%
@@ -59,12 +85,12 @@ class MachineLearning:
                                                             stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
 
         # Train the model using the training sets.
-        model.fit(X_train, y_train)
+        classifier.fit(X_train, y_train)
 
         # Predict the response for test set.
-        y_pred = model.predict(X_test)
+        y_pred = classifier.predict(X_test)
 
         # Model accuracy, how often is the classifier correct?
         self.logger.info(f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
-        return model
+        return classifier
