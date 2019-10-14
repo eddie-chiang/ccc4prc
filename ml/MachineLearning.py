@@ -101,7 +101,7 @@ class MachineLearning:
         # Encode features, i.e. convert string labels into numbers.
         classifier = Pipeline([
             ('cv', CountVectorizer(stop_words='english')),
-            ('tfidf', TfidfTransformer()),
+            # ('tfidf', TfidfTransformer()),
             ('mnb', MultinomialNB())
         ])
 
@@ -123,6 +123,12 @@ class MachineLearning:
         # Model accuracy, how often is the classifier correct?
         self.logger.info(
             f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+
+        # Predict the previously trained YES (code_comprehension_related).
+        test = {
+            '1': 'Should this commented out code still be in here?'
+        }
+        result_pred = classifier.predict(test)
 
         return classifier
 
