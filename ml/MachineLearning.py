@@ -124,6 +124,12 @@ class MachineLearning:
         self.logger.info(
             f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
+        print(X_train.to_string())
+        print(y_train.to_string())
+
+        print(X_test.to_string())
+        print(y_test.to_string())
+
         # Predict the previously trained YES (code_comprehension_related).
         test = {
             '1': 'Should this commented out code still be in here?',
