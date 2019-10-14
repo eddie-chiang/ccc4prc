@@ -126,7 +126,11 @@ class MachineLearning:
 
         # Predict the previously trained YES (code_comprehension_related).
         test = {
-            '1': 'Should this commented out code still be in here?'
+            '1': 'Should this commented out code still be in here?',
+            '2': 'Can this be private?',
+            '3': 'Can it work with "parallel: true"?',
+            '4': 'I am confused, aren\'t we using `__`?',
+            '5': 'No need for DatabaseJournalEntry?'
         }
         result_pred = classifier.predict(test)
 
