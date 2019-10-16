@@ -8,7 +8,7 @@ from sklearn import metrics
 from sklearn import preprocessing
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import FeatureUnion, Pipeline
@@ -100,20 +100,24 @@ class MachineLearning:
         # Create a Multinomial Naive Bayes classifier.
         # Make a pipeline for data preprocessing.
         # Encode features, i.e. convert string labels into numbers.
-        classifier = Pipeline([
+        pipeline_classifier = Pipeline([
             # ('cv', CountVectorizer(stop_words='english')),
             # ('tfidf', TfidfTransformer()),
             ('feature_union', FeatureUnion([
                 ('tfdif_features', Pipeline([
-                    ('cv', CountVectorizer(stop_words='english'))#,
-                    # ('tfidf', TfidfTransformer()),
-                ])),
-                ('pos_features', Pipeline([
-                    ('pos', PosTagEstimator(tokenizer=nltk.word_tokenize)),
-                ])),
+                    ('cv', CountVectorizer(stop_words='english')),
+                    ('tfidf', TfidfTransformer()),
+                ]))#,
+                # ('pos_features', Pipeline([
+                #     ('pos', PosTagEstimator(tokenizer=nltk.word_tokenize)),
+                # ])),
             ])),
             ('mnb', MultinomialNB())
         ])
+
+        # Use Grid Search to perform hyper parameter tuning in order to determine the optimal values for the machine learning model.
+        grid_search_cv_params = {}
+        classifier = GridSearchCV(pipeline_classifier, grid_search_cv_params, cv=5)
 
         # Split data into training and test sets.
         target = data_frame['code_comprehension_related']
