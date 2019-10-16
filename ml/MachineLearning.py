@@ -1,6 +1,8 @@
 import logging
+import nltk
 import numpy
 
+from .PosTagEstimator import PosTagEstimator
 from pandas import DataFrame
 from sklearn import metrics
 from sklearn import preprocessing
@@ -9,8 +11,7 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import make_pipeline
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import FeatureUnion, Pipeline
 
 
 class MachineLearning:
@@ -100,8 +101,17 @@ class MachineLearning:
         # Make a pipeline for data preprocessing.
         # Encode features, i.e. convert string labels into numbers.
         classifier = Pipeline([
-            ('cv', CountVectorizer(stop_words='english')),
+            # ('cv', CountVectorizer(stop_words='english')),
             # ('tfidf', TfidfTransformer()),
+            ('feature_union', FeatureUnion([
+                ('tfdif_features', Pipeline([
+                    ('cv', CountVectorizer(stop_words='english'))#,
+                    # ('tfidf', TfidfTransformer()),
+                ]))#,
+                # ('pos_features', Pipeline([
+                #     ('pos', PosTagEstimator(tokenizer=nltk.word_tokenize)),
+                # ])),
+            ])),
             ('mnb', MultinomialNB())
         ])
 
@@ -142,8 +152,8 @@ class MachineLearning:
 
         return classifier
 
-        ## TODO Stemming
-        # Example code 
+        # TODO Stemming
+        # Example code
         # Stemming Code
         # from nltk.stem.snowball import SnowballStemmer
         # stemmer = SnowballStemmer("english", ignore_stopwords=True)
@@ -152,10 +162,10 @@ class MachineLearning:
         #     def build_analyzer(self):
         #         analyzer = super(StemmedCountVectorizer, self).build_analyzer()
         #         return lambda doc: ([stemmer.stem(w) for w in analyzer(doc)])
-            
+
         # stemmed_count_vect = StemmedCountVectorizer(stop_words='english')
 
-        # text_mnb_stemmed = Pipeline([('vect', stemmed_count_vect), ('tfidf', TfidfTransformer()), 
+        # text_mnb_stemmed = Pipeline([('vect', stemmed_count_vect), ('tfidf', TfidfTransformer()),
         #                             ('mnb', MultinomialNB(fit_prior=False))])
 
         # text_mnb_stemmed = text_mnb_stemmed.fit(twenty_train.data, twenty_train.target)
@@ -164,4 +174,4 @@ class MachineLearning:
 
         # np.mean(predicted_mnb_stemmed == twenty_test.target)
 
-        ## TODO Lemmatization
+        # TODO Lemmatization

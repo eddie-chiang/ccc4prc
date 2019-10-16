@@ -1,1 +1,2 @@
 from .MachineLearning import MachineLearning
+from .PosTagEstimator import PosTagEstimator
