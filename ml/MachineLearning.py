@@ -2,7 +2,7 @@ import logging
 import nltk
 import numpy
 
-from .PosTagEstimator import PosTagEstimator
+from estimator import PosTagEstimator
 from pandas import DataFrame
 from sklearn import metrics
 from sklearn import preprocessing
@@ -107,10 +107,10 @@ class MachineLearning:
                 ('tfdif_features', Pipeline([
                     ('cv', CountVectorizer(stop_words='english'))#,
                     # ('tfidf', TfidfTransformer()),
-                ]))#,
-                # ('pos_features', Pipeline([
-                #     ('pos', PosTagEstimator(tokenizer=nltk.word_tokenize)),
-                # ])),
+                ])),
+                ('pos_features', Pipeline([
+                    ('pos', PosTagEstimator(tokenizer=nltk.word_tokenize)),
+                ])),
             ])),
             ('mnb', MultinomialNB())
         ])
@@ -134,11 +134,11 @@ class MachineLearning:
         self.logger.info(
             f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
-        print(X_train.to_string())
-        print(y_train.to_string())
+        # print(X_train.to_string())
+        # print(y_train.to_string())
 
-        print(X_test.to_string())
-        print(y_test.to_string())
+        # print(X_test.to_string())
+        # print(y_test.to_string())
 
         # Predict the previously trained YES (code_comprehension_related).
         test = {
