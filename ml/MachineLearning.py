@@ -116,7 +116,7 @@ class MachineLearning:
         ])
 
         # Use Grid Search to perform hyper parameter tuning in order to determine the optimal values for the machine learning model.
-        grid_search_cv_params = {}
+        grid_search_cv_params = {'feature_union__tfdif_features__tfidf__use_idf': (True, False)}
         classifier = GridSearchCV(pipeline_classifier, grid_search_cv_params, cv=5)
 
         # Split data into training and test sets.
