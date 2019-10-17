@@ -100,13 +100,13 @@ class MachineLearning:
         # Create a Multinomial Naive Bayes classifier.
         # Make a pipeline for data preprocessing.
         # Encode features, i.e. convert string labels into numbers.
-        pipeline_classifier = Pipeline([
+        pipeline_estimators = Pipeline([
             # ('cv', CountVectorizer(stop_words='english')),
             # ('tfidf', TfidfTransformer()),
             ('feature_union', FeatureUnion([
                 ('tfdif_features', Pipeline([
-                    ('cv', CountVectorizer(stop_words='english')),
-                    ('tfidf', TfidfTransformer()),
+                    ('cv', CountVectorizer(stop_words='english'))#,
+                    #('tfidf', TfidfTransformer()),
                 ]))#,
                 # ('pos_features', Pipeline([
                 #     ('pos', PosTagEstimator(tokenizer=nltk.word_tokenize)),
@@ -116,8 +116,8 @@ class MachineLearning:
         ])
 
         # Use Grid Search to perform hyper parameter tuning in order to determine the optimal values for the machine learning model.
-        grid_search_cv_params = {'feature_union__tfdif_features__tfidf__use_idf': (True, False)}
-        classifier = GridSearchCV(pipeline_classifier, grid_search_cv_params, cv=5)
+        grid_search_cv_params = {}#{'feature_union__tfdif_features__tfidf__use_idf': (True, False)}
+        classifier = GridSearchCV(pipeline_estimators, grid_search_cv_params, cv=5)
 
         # Split data into training and test sets.
         target = data_frame['code_comprehension_related']
