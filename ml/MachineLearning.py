@@ -153,6 +153,11 @@ class MachineLearning:
             '5': 'No need for DatabaseJournalEntry?'
         }
         result_pred = classifier.predict(test)
+        result_test = ['Yes', 'Yes', 'Yes', 'Yes', 'Yes']
+        target_names = ['Yes', 'No']
+
+        self.logger.info(
+            f'{metrics.classification_report(result_test, result_pred, target_names=target_names, digits=2)}')
 
         return classifier
 
