@@ -22,7 +22,6 @@ class PosTagEstimator(BaseEstimator, TransformerMixin):
         """This a transformer class, so this method does not do much. """
         return self
 
-    # all the work is done here
     def transform(self, X):
         X_tagged = X.apply(self.__pos_tag).apply(pandas.Series).fillna(0)
         X_tagged['n_tokens'] = X_tagged.apply(sum, axis=1)
@@ -31,7 +30,6 @@ class PosTagEstimator(BaseEstimator, TransformerMixin):
 
         return X_tagged
 
-    # helper function to tokenize and count parts of speech
     def __pos_tag(self, sentence):
         """Tokenize and count parts of speech. """
         return Counter(tag for word, tag in nltk.pos_tag(self.tokenizer(sentence)))
