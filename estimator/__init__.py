@@ -1,1 +1,2 @@
+from .DataSubsetSelector import DataSubsetSelector
 from .PosTagEstimator import PosTagEstimator
