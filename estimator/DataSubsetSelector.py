@@ -2,13 +2,13 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 
 class DataSubsetSelector(BaseEstimator, TransformerMixin):
-    """For a given dataset, returns a subset of data for a provided key."""
+    """For a given dataset, returns a subset of data for provided key(s)."""
 
-    def __init__(self, key):
-        self.key = key
+    def __init__(self, keys: list):
+        self.keys = keys
 
     def fit(self, x, y=None):
         return self
 
     def transform(self, data: dict):
-        return data[self.key]
+        return data[self.keys]
