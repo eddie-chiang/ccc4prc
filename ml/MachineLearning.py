@@ -100,26 +100,33 @@ class MachineLearning:
         # Create a Multinomial Naive Bayes classifier.
         # Make a pipeline for data preprocessing.
         # Encode features, i.e. convert string labels into numbers.
+        # body_pipeline = Pipeline(
+        #     steps=[
+        #         ('feature_union', FeatureUnion(
+        #             transformer_list=[
+        #                 ('body', Pipeline([
+        #                     ('selector', DataSubsetSelector(keys='body')),
+        #                     ('cv', CountVectorizer(stop_words='english')),
+        #                     # ('tfidf', TfidfTransformer()),
+        #                 ])),
+        #                 # ('pos_features', Pipeline([
+        #                 #     ('pos', PosTagEstimator(tokenizer=nltk.word_tokenize)),
+        #                 # ])),
+        #             ],
+        #             transformer_weights={
+        #                 'body': 1.0,
+        #             },
+        #         )),
+        #         # Currently SVC has got a better precision/recall and overall accuracy, compared to MultinomialNB.
+        #         ('classifier', SVC(kernel='linear'))],
+        #     verbose=True)
+        
         body_pipeline = Pipeline(
             steps=[
-                ('feature_union', FeatureUnion(
-                    transformer_list=[
-                        ('body', Pipeline([
-                            ('selector', DataSubsetSelector(keys='body')),
-                            ('cv', CountVectorizer(stop_words='english')),
-                            # ('tfidf', TfidfTransformer()),
-                        ])),
-                        # ('pos_features', Pipeline([
-                        #     ('pos', PosTagEstimator(tokenizer=nltk.word_tokenize)),
-                        # ])),
-                    ],
-                    transformer_weights={
-                        'body': 1.0,
-                    },
-                )),
-                # Currently SVC has got a better precision/recall and overall accuracy, compared to MultinomialNB.
-                ('classifier', SVC(kernel='linear'))],
-            verbose=True)
+                ('cv', CountVectorizer(stop_words='english'))
+            ],
+            verbose=True
+        )
 
         one_hot_encoder_categories = [
             [
@@ -148,14 +155,14 @@ class MachineLearning:
         # TODO separate out categorical_transformer into individual transformer for dialogue_act_classification_ml and comment_is_by_author.
         column_transformer = ColumnTransformer(
             transformers=[
-                # ('body_pipeline', body_pipeline, 'body'),
+                ('body_pipeline', body_pipeline, 'body'),
                 ('categorical_transformer', OneHotEncoder(categories=one_hot_encoder_categories), [
                  'dialogue_act_classification_ml', 'comment_is_by_author']),
                 ('comment_is_by_author_pipeline',
                  SingleFeatureOneHotEncoder(), 'comment_is_by_author'),
             ],
             transformer_weights={
-                # 'body_pipeline': 1.0,
+                'body_pipeline': 1.0,
                 'categorical_transformer': 1.0,
                 'comment_is_by_author_pipeline': 0.5,
             },
@@ -208,15 +215,16 @@ class MachineLearning:
             ['Can it work with "parallel: true"?', 'Emphasis', False, 'Yes'],
             ['I am confused, aren\'t we using `__`?', 'Emphasis', False, 'Yes'],
             ['No need for DatabaseJournalEntry?', 'ynQuestion', False, 'Yes'],
+            ['Fixed with #470 ', 'System', True, 'No'],
+            ['same comments apply as in python method case', 'Clarify', False, 'No'],
         ]
         test = DataFrame(test_data, columns=[
                          'body', 'dialogue_act_classification_ml', 'comment_is_by_author', 'code_comprehension_related'])
-        result_pred = classifier.predict(test)
+        result_pred = classifier.predict(test[['body', 'dialogue_act_classification_ml', 'comment_is_by_author']])
         result_test = test['code_comprehension_related']
-        target_names = ['Yes', 'No']
 
         self.logger.info(
-            f'{metrics.classification_report(result_test, result_pred, target_names=target_names, digits=2)}')
+            f'{metrics.classification_report(result_test, result_pred, digits=2)}')
 
         return classifier
 
