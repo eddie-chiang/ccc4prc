@@ -121,25 +121,6 @@ class MachineLearning:
                 ('classifier', SVC(kernel='linear'))],
             verbose=True)
 
-        dialogue_act_classification_categories = [[
-            'Accept',
-            'Bye',
-            'Clarify',
-            'Continuer',
-            'Emotion',
-            'Emphasis',
-            'Greet',
-            'nAnswer',
-            'Other',
-            'Reject',
-            'Statement',
-            'System',
-            'whQuestion',
-            'yAnswer',
-            'nAnswer',
-            'ynQuestion'
-        ], []]
-
         one_hot_encoder_categories = [
             [
                 'Accept',
@@ -149,7 +130,6 @@ class MachineLearning:
                 'Emotion',
                 'Emphasis',
                 'Greet',
-                'nAnswer',
                 'Other',
                 'Reject',
                 'Statement',
@@ -165,23 +145,20 @@ class MachineLearning:
             ]
         ]
 
+        # TODO separate out categorical_transformer into individual transformer for dialogue_act_classification_ml and comment_is_by_author.
         column_transformer = ColumnTransformer(
             transformers=[
                 # ('body_pipeline', body_pipeline, 'body'),
                 ('categorical_transformer', OneHotEncoder(categories=one_hot_encoder_categories), [
                  'dialogue_act_classification_ml', 'comment_is_by_author']),
-                # ('dialogue_act_classification_pipeline',
-                #  SingleFeatureOneHotEncoder(categories=dialogue_act_classification_categories), 'dialogue_act_classification_ml'),
                 ('comment_is_by_author_pipeline',
                  SingleFeatureOneHotEncoder(), 'comment_is_by_author'),
-                # ('comment_is_by_author_pipeline',
-                #  comment_is_by_author_pipeline, 'comment_is_by_author'),
             ],
-            # transformer_weights={
-            #     # 'body_pipeline': 1.0,
-            #     'categorical_transformer': 0.8,
-            #     # 'comment_is_by_author_pipeline': 1.0
-            # },
+            transformer_weights={
+                # 'body_pipeline': 1.0,
+                'categorical_transformer': 1.0,
+                'comment_is_by_author_pipeline': 0.5,
+            },
             verbose=True)
 
         full_pipeline = Pipeline(
