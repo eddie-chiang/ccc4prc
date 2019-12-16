@@ -160,7 +160,8 @@ class MachineLearning:
             # Currently SVC has got a better precision/recall and overall accuracy.
             ('svc', SVC(kernel='linear')) 
             # ('mnb', MultinomialNB())
-        ])
+        ],
+        verbose=True)
 
         # Use Grid Search to perform hyper parameter tuning in order to determine the optimal values for the machine learning model.
         # TODO tweak the search params.
