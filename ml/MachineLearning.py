@@ -2,16 +2,17 @@ import logging
 import nltk
 import numpy
 
-from estimator import PosTagEstimator
+from estimator import DataSubsetSelector, PosTagEstimator
 from pandas import DataFrame
 from sklearn import metrics
-from sklearn import preprocessing
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import FeatureUnion, Pipeline
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.svm import SVC
 
 
 class MachineLearning:
@@ -28,9 +29,7 @@ class MachineLearning:
         Returns:
             model: a trained machine learning model.
         """
-        return self.__perform_naive_bayes(data_frame)
 
-    def __perform_naive_bayes(self, data_frame: DataFrame):
         # # Create a Gaussian Naive Bayes classifier.
         # model = GaussianNB()
 
@@ -100,28 +99,80 @@ class MachineLearning:
         # Create a Multinomial Naive Bayes classifier.
         # Make a pipeline for data preprocessing.
         # Encode features, i.e. convert string labels into numbers.
+        # pipeline_estimators = Pipeline([
+        #     # ('cv', CountVectorizer(stop_words='english')),
+        #     # ('tfidf', TfidfTransformer()),
+        #     ('feature_union', FeatureUnion([
+        #         ('tfdif_features', Pipeline([
+        #             ('cv', CountVectorizer(stop_words='english'))#,
+        #             #('tfidf', TfidfTransformer()),
+        #         ]))#,
+        #         # ('pos_features', Pipeline([
+        #         #     ('pos', PosTagEstimator(tokenizer=nltk.word_tokenize)),
+        #         # ])),
+        #     ])),
+        #     ('mnb', MultinomialNB())
+        # ])
+
+        dialogue_act_classification_categories = [
+            'Accept',
+            'Bye',
+            'Clarify',
+            'Continuer',
+            'Emotion',
+            'Emphasis',
+            'Greet',
+            'nAnswer',
+            'Other',
+            'Reject',
+            'Statement',
+            'System',
+            'whQuestion',
+            'yAnswer',
+            'nAnswer',
+            'ynQuestion']
+
         pipeline_estimators = Pipeline([
-            # ('cv', CountVectorizer(stop_words='english')),
-            # ('tfidf', TfidfTransformer()),
-            ('feature_union', FeatureUnion([
-                ('tfdif_features', Pipeline([
-                    ('cv', CountVectorizer(stop_words='english'))#,
-                    #('tfidf', TfidfTransformer()),
-                ]))#,
-                # ('pos_features', Pipeline([
-                #     ('pos', PosTagEstimator(tokenizer=nltk.word_tokenize)),
-                # ])),
-            ])),
-            ('mnb', MultinomialNB())
+            ('feature_union', FeatureUnion(
+                transformer_list=[
+                    ('body', Pipeline([
+                        ('selector', DataSubsetSelector(keys='body')),
+                        ('cv', CountVectorizer(stop_words='english')),
+                    ])),
+                    # ('dialogue_act_classification_ml', Pipeline([
+                    #     ('selector', DataSubsetSelector(
+                    #         keys='dialogue_act_classification_ml')),
+                    #     ('encoder', OneHotEncoder(categories=dialogue_act_classification_categories)),
+                    # ])),
+                    # ('comment_is_by_author', Pipeline([
+                    #     ('selector', DataSubsetSelector(
+                    #         keys='comment_is_by_author')),
+                    #     ('encoder', OneHotEncoder()),
+                    # ])),
+                ],
+                transformer_weights={
+                    'body': 1.0,
+                    # 'dialogue_act_classification_ml': 0.8,
+                    # 'comment_is_by_author': 1.0,
+                },
+            )),
+            
+            # Currently SVC has got a better precision/recall and overall accuracy.
+            ('svc', SVC(kernel='linear')) 
+            # ('mnb', MultinomialNB())
         ])
 
         # Use Grid Search to perform hyper parameter tuning in order to determine the optimal values for the machine learning model.
-        grid_search_cv_params = {}#{'feature_union__tfdif_features__tfidf__use_idf': (True, False)}
-        classifier = GridSearchCV(pipeline_estimators, grid_search_cv_params, cv=5)
+        # TODO tweak the search params.
+        # {'feature_union__tfdif_features__tfidf__use_idf': (True, False)}
+        grid_search_cv_params = {}
+        classifier = GridSearchCV(
+            pipeline_estimators, grid_search_cv_params, cv=5, verbose=2)
 
         # Split data into training and test sets.
         target = data_frame['code_comprehension_related']
-        features = data_frame['body']
+        features = data_frame[[
+            'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
         X_train, X_test, y_train, y_test = train_test_split(features,
                                                             target,
                                                             test_size=0.2,  # 20%
@@ -145,13 +196,17 @@ class MachineLearning:
         # print(y_test.to_string())
 
         # Predict the previously trained YES (code_comprehension_related).
-        test = {
-            '1': 'Should this commented out code still be in here?',
-            '2': 'Can this be private?',
-            '3': 'Can it work with "parallel: true"?',
-            '4': 'I am confused, aren\'t we using `__`?',
-            '5': 'No need for DatabaseJournalEntry?'
+        test_data = {
+            'index': ['1', '2', '3', '4', '5'],
+            'body': [
+                'Should this commented out code still be in here?',
+                'Can this be private?',
+                'Can it work with "parallel: true"?',
+                'I am confused, aren\'t we using `__`?',
+                'No need for DatabaseJournalEntry?'
+            ]
         }
+        test = DataFrame(test_data)
         result_pred = classifier.predict(test)
         result_test = ['Yes', 'Yes', 'Yes', 'Yes', 'Yes']
         target_names = ['Yes', 'No']
@@ -184,3 +239,35 @@ class MachineLearning:
         # np.mean(predicted_mnb_stemmed == twenty_test.target)
 
         # TODO Lemmatization
+
+
+# https://github.com/scikit-learn/scikit-learn/issues/12494
+#         categories = list(housing.ocean_proximity.unique())
+
+# numerical_pipeline = Pipeline([("imputer", SimpleImputer(strategy="median")),
+#                                ("featurization", Feature_Adder_FT),
+#                                ("strd_scaler", StandardScaler())], verbose=True)
+
+# categorical_pipeline = Pipeline([("one_hot_encoding", OneHotEncoder(categories=[categories]))],verbose=True)
+# # categorical_pipeline = Pipeline([("one_hot_encoding", OneHotEncoder(handle_unknown="ignore"))],verbose=True)
+
+# numerical_features = list(housing.select_dtypes(include=[np.number]).columns)
+# categorical_features = list(
+#     housing.select_dtypes(include=["category"]).columns)
+
+# full_pipeline = ColumnTransformer([("numerical_pipeline", numerical_pipeline, numerical_features),
+#                                    ("categorical_pipeline", categorical_pipeline, categorical_features)],
+#                                  verbose=True)
+
+# full_pipeline_with_predictor = Pipeline(
+#     [("data_preprocessing", full_pipeline), ("linear_regressor", LinearRegression())])
+
+# param_grid = [
+#     {"data_preprocessing__numerical_pipeline__imputer__strategy": ["mean", "median"]}]
+
+# grid_search = GridSearchCV(full_pipeline_with_predictor, param_grid, cv=5, scoring="neg_mean_squared_error",
+#                            verbose=2, n_jobs=8)
+
+# grid_search.fit(housing, labels) # works
+
+# grid_search.best_params_
