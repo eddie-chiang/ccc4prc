@@ -6,7 +6,7 @@ class SingleFeatureOneHotEncoder(OneHotEncoder):
     """Subclass of OneHotEncoder to encode an 1D array with a single feature."""
 
     def __init__(self, categories='auto'):
-        super().__init__(categories=categories, sparse=True)
+        super().__init__(categories=categories)
 
     def fit(self, X, y=None):
         X = self.__convert_array(X)
