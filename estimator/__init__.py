@@ -1,2 +1,3 @@
 from .DataSubsetSelector import DataSubsetSelector
 from .PosTagEstimator import PosTagEstimator
+from .SingleFeatureOneHotEncoder import SingleFeatureOneHotEncoder
