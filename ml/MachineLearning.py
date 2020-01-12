@@ -121,13 +121,6 @@ class MachineLearning:
         #         ('classifier', SVC(kernel='linear'))],
         #     verbose=True)
 
-        body_pipeline = Pipeline(
-            steps=[
-                ('cv', CountVectorizer(stop_words='english'))
-            ],
-            verbose=True
-        )
-
         one_hot_encoder_categories = [
             [
                 'Accept',
@@ -155,14 +148,16 @@ class MachineLearning:
         # TODO separate out categorical_transformer into individual transformer for dialogue_act_classification_ml and comment_is_by_author.
         column_transformer = ColumnTransformer(
             transformers=[
-                ('body_pipeline', body_pipeline, 'body'),
+                ('body_bow_pipeline', CountVectorizer(stop_words='english'), 'body'),
+                #('body_ngram_pipeline', CountVectorizer(stop_words='english', ngram_range=(1, 2)), 'body'),
                 ('categorical_transformer', OneHotEncoder(categories=one_hot_encoder_categories), [
                  'dialogue_act_classification_ml', 'comment_is_by_author']),
                 ('comment_is_by_author_pipeline',
                  SingleFeatureOneHotEncoder(), 'comment_is_by_author'),
             ],
             transformer_weights={
-                'body_pipeline': 1.0,
+                'body_bow_pipeline': 1.0,
+                #'body_bow_pipeline': 0.5,
                 'categorical_transformer': 1.0,
                 'comment_is_by_author_pipeline': 0.5,
             },
