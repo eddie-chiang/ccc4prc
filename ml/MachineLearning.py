@@ -120,7 +120,7 @@ class MachineLearning:
         #         # Currently SVC has got a better precision/recall and overall accuracy, compared to MultinomialNB.
         #         ('classifier', SVC(kernel='linear'))],
         #     verbose=True)
-        
+
         body_pipeline = Pipeline(
             steps=[
                 ('cv', CountVectorizer(stop_words='english'))
@@ -171,7 +171,7 @@ class MachineLearning:
         full_pipeline = Pipeline(
             steps=[
                 ("preprocessor", column_transformer),
-                ('classifier', SVC(kernel='linear'))],
+                ('classifier', SVC(kernel='linear', probability=True))],
             verbose=True)
 
         # Use Grid Search to perform hyper parameter tuning in order to determine the optimal values for the machine learning model.
@@ -196,6 +196,7 @@ class MachineLearning:
 
         # Predict the response for test set.
         y_pred = classifier.predict(X_test)
+        y_pred_prob = classifier.predict_proba(X_test)
 
         # Model accuracy, how often is the classifier correct?
         self.logger.info(
@@ -220,7 +221,8 @@ class MachineLearning:
         ]
         test = DataFrame(test_data, columns=[
                          'body', 'dialogue_act_classification_ml', 'comment_is_by_author', 'code_comprehension_related'])
-        result_pred = classifier.predict(test[['body', 'dialogue_act_classification_ml', 'comment_is_by_author']])
+        result_pred = classifier.predict(
+            test[['body', 'dialogue_act_classification_ml', 'comment_is_by_author']])
         result_test = test['code_comprehension_related']
 
         self.logger.info(
