@@ -149,7 +149,7 @@ class MachineLearning:
         column_transformer = ColumnTransformer(
             transformers=[
                 ('body_bow_pipeline', CountVectorizer(stop_words='english'), 'body'),
-                #('body_ngram_pipeline', CountVectorizer(stop_words='english', ngram_range=(1, 2)), 'body'),
+                #('body_ngram_pipeline', CountVectorizer(stop_words='english', ngram_range=(1, 3)), 'body'),
                 ('categorical_transformer', OneHotEncoder(categories=one_hot_encoder_categories), [
                  'dialogue_act_classification_ml', 'comment_is_by_author']),
                 ('comment_is_by_author_pipeline',
@@ -157,7 +157,7 @@ class MachineLearning:
             ],
             transformer_weights={
                 'body_bow_pipeline': 1.0,
-                #'body_bow_pipeline': 0.5,
+                #'body_ngram_pipeline': 0.5,
                 'categorical_transformer': 1.0,
                 'comment_is_by_author_pipeline': 0.5,
             },
