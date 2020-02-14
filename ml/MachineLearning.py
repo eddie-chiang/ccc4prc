@@ -197,11 +197,17 @@ class MachineLearning:
         self.logger.info(
             f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
-        # print(X_train.to_string())
-        # print(y_train.to_string())
+        new_train = X_train
+        # Find incorrect predictions
+        # Find the 20% lowest confidence
+        # Add to the training set
+        # Output to file
+        for idx, prediction in enumerate(y_pred):
+            actual = y_test.iloc[idx]
 
-        # print(X_test.to_string())
-        # print(y_test.to_string())
+            if prediction != actual:
+                # Add to the training set
+                self.logger.info(f'index: {idx}, prediction: {prediction}, actual: {actual}')
 
         # Predict the previously trained YES (code_comprehension_related).
         test_data = [
