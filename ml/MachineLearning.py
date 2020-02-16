@@ -22,11 +22,12 @@ class MachineLearning:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def learn(self, data_frame: DataFrame):
+    def learn(self, seed: DataFrame):
         """Using Scikit-learn and supervised training to create a machine learning model.
 
         Args:
-            data_frame (DataFrame): Data with training and test sets.
+            seed (DataFrame): Data with the labeled training and test sets.
+            unlabeled_data: Unlabeled data set for active learning to select more samples.
         Returns:
             model: a trained machine learning model.
         """
@@ -177,8 +178,8 @@ class MachineLearning:
             full_pipeline, grid_search_cv_params, cv=5, verbose=2)
 
         # Split data into training and test sets.
-        target = data_frame['code_comprehension_related']
-        features = data_frame[[
+        target = seed['code_comprehension_related']
+        features = seed[[
             'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
         X_train, X_test, y_train, y_test = train_test_split(features,
                                                             target,
@@ -199,15 +200,20 @@ class MachineLearning:
 
         new_train = X_train
         # Find incorrect predictions
-        # Find the 20% lowest confidence
-        # Add to the training set
-        # Output to file
+        # Scenario: Pool-Based sampling, batch size = 10.
+        # Query Strategy: Least Confidence
+        # Small labeled data set is called the seed.
+        # Console prompt to ask the Oracle for the label.
+        # Stop criteria: Stop at X iteration, or compare with a separate test set to see how the performance has improved or stagnated.
         for idx, prediction in enumerate(y_pred):
             actual = y_test.iloc[idx]
 
             if prediction != actual:
                 # Add to the training set
+                training_record = X_test.iloc[idx]
                 self.logger.info(f'index: {idx}, prediction: {prediction}, actual: {actual}')
+                new_train = new_train.append(training_record)
+                
 
         # Predict the previously trained YES (code_comprehension_related).
         test_data = [
