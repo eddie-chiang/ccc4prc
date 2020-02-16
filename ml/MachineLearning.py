@@ -22,12 +22,12 @@ class MachineLearning:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def learn(self, seed: DataFrame):
+    def learn(self, seed: DataFrame, unlabeled_dataset: DataFrame):
         """Using Scikit-learn and supervised training to create a machine learning model.
 
         Args:
             seed (DataFrame): Data with the labeled training and test sets.
-            unlabeled_data: Unlabeled data set for active learning to select more samples.
+            unlabeled_dataset: Unlabeled dataset for active learning to select more samples.
         Returns:
             model: a trained machine learning model.
         """
