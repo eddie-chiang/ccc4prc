@@ -39,10 +39,7 @@ class FileGenerator:
         random_numbers = random.sample(range(0, total_rows - 1), sample_size)
 
         data_frame = data_frame.iloc[random_numbers]
-
-        # Drop the dialogue_act_classification_ml to allow unbiased manual DAC.
-        data_frame.drop(columns='dialogue_act_classification_ml', inplace=True)
-
+        
         data_frame['dialogue_act_classification_manual'] = ""
         data_frame['topic_keywords'] = ""
 
