@@ -22,6 +22,133 @@ class MachineLearning:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
+    def active_learn(self, seed: DataFrame, unlabeled_dataset: DataFrame, test_dataset: DataFrame):
+        """Using Scikit-learn, supervised training and active learning to create a machine learning model.
+
+        Args:
+            seed (DataFrame): Data with the labeled training set.
+            unlabeled_dataset (DataFrame): Unlabeled dataset for active learning to select more samples.
+            test_dataset (DataFrame): Separate test dataset to measure the performance of the machine learning model.
+        Returns:
+            model: a trained machine learning model.
+        """
+
+        one_hot_encoder_categories = [
+            [
+                'Accept',
+                'Bye',
+                'Clarify',
+                'Continuer',
+                'Emotion',
+                'Emphasis',
+                'Greet',
+                'Other',
+                'Reject',
+                'Statement',
+                'System',
+                'whQuestion',
+                'yAnswer',
+                'nAnswer',
+                'ynQuestion'
+            ],
+            [
+                False,  # 0 should come before 1 for numerical columns.
+                True
+            ]
+        ]
+
+        # TODO separate out categorical_transformer into individual transformer for dialogue_act_classification_ml and comment_is_by_author.
+        column_transformer = ColumnTransformer(
+            transformers=[
+                ('body_bow_pipeline', CountVectorizer(
+                    stop_words='english'), 'body'),
+                #('body_ngram_pipeline', CountVectorizer(stop_words='english', ngram_range=(1, 3)), 'body'),
+                ('categorical_transformer', OneHotEncoder(categories=one_hot_encoder_categories), [
+                 'dialogue_act_classification_ml', 'comment_is_by_author']),
+                # ('comment_is_by_author_pipeline',
+                #  SingleFeatureOneHotEncoder(), 'comment_is_by_author'),
+            ],
+            transformer_weights={
+                'body_bow_pipeline': 1.0,
+                # 'body_ngram_pipeline': 0.5,
+                'categorical_transformer': 1.0,
+                # 'comment_is_by_author_pipeline': 0.1,
+            },
+            verbose=True)
+
+        full_pipeline = Pipeline(
+            steps=[
+                ("preprocessor", column_transformer),
+                ('classifier', SVC(kernel='linear', probability=True))],
+            verbose=True)
+
+        # Use Grid Search to perform hyper parameter tuning in order to determine the optimal values for the machine learning model.
+        # TODO tweak the search params.
+        # {'feature_union__tfdif_features__tfidf__use_idf': (True, False)}
+        grid_search_cv_params = {}
+        classifier = GridSearchCV(
+            full_pipeline, grid_search_cv_params, cv=5, verbose=2)
+
+        # Split data into training and test sets.
+        target = seed['code_comprehension_related']
+        features = seed[[
+            'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
+        X_train, X_test, y_train, y_test = train_test_split(features,
+                                                            target,
+                                                            test_size=0.2,  # 20%
+                                                            random_state=2019,  # An arbitrary seed so the results can be reproduced
+                                                            stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
+
+        # Train the model using the training sets.
+        classifier.fit(X_train, y_train)
+
+        # Predict the response for test set.
+        y_pred = classifier.predict(X_test)
+        y_pred_prob = classifier.predict_proba(X_test)
+
+        # Model accuracy, how often is the classifier correct?
+        self.logger.info(
+            f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+
+        new_train = X_train
+        # Find incorrect predictions
+        # Scenario: Pool-Based sampling, batch size = 10.
+        # Query Strategy: Least Confidence
+        # Small labeled data set is called the seed.
+        # Console prompt to ask the Oracle for the label.
+        # Stop criteria: Stop at X iteration, or compare with a separate test set to see how the performance has improved or stagnated.
+        for idx, prediction in enumerate(y_pred):
+            actual = y_test.iloc[idx]
+
+            if prediction != actual:
+                # Add to the training set
+                training_record = X_test.iloc[idx]
+                self.logger.info(
+                    f'index: {idx}, prediction: {prediction}, actual: {actual}')
+                new_train = new_train.append(training_record)
+
+        # Predict the previously trained YES (code_comprehension_related).
+        test_data = [
+            ['Should this commented out code still be in here?',
+                'ynQuestion', False, 'Yes'],
+            ['Can this be private?', 'ynQuestion', False, 'Yes'],
+            ['Can it work with "parallel: true"?', 'Emphasis', False, 'Yes'],
+            ['I am confused, aren\'t we using `__`?', 'Emphasis', False, 'Yes'],
+            ['No need for DatabaseJournalEntry?', 'ynQuestion', False, 'Yes'],
+            ['Fixed with #470 ', 'System', True, 'No'],
+            ['same comments apply as in python method case', 'Clarify', False, 'No'],
+        ]
+        test = DataFrame(test_data, columns=[
+                         'body', 'dialogue_act_classification_ml', 'comment_is_by_author', 'code_comprehension_related'])
+        result_pred = classifier.predict(
+            test[['body', 'dialogue_act_classification_ml', 'comment_is_by_author']])
+        result_test = test['code_comprehension_related']
+
+        self.logger.info(
+            f'{metrics.classification_report(result_test, result_pred, digits=2)}')
+
+        return classifier
+
     def learn(self, seed: DataFrame, unlabeled_dataset: DataFrame):
         """Using Scikit-learn and supervised training to create a machine learning model.
 
@@ -149,7 +276,8 @@ class MachineLearning:
         # TODO separate out categorical_transformer into individual transformer for dialogue_act_classification_ml and comment_is_by_author.
         column_transformer = ColumnTransformer(
             transformers=[
-                ('body_bow_pipeline', CountVectorizer(stop_words='english'), 'body'),
+                ('body_bow_pipeline', CountVectorizer(
+                    stop_words='english'), 'body'),
                 #('body_ngram_pipeline', CountVectorizer(stop_words='english', ngram_range=(1, 3)), 'body'),
                 ('categorical_transformer', OneHotEncoder(categories=one_hot_encoder_categories), [
                  'dialogue_act_classification_ml', 'comment_is_by_author']),
@@ -158,7 +286,7 @@ class MachineLearning:
             ],
             transformer_weights={
                 'body_bow_pipeline': 1.0,
-                #'body_ngram_pipeline': 0.5,
+                # 'body_ngram_pipeline': 0.5,
                 'categorical_transformer': 1.0,
                 # 'comment_is_by_author_pipeline': 0.1,
             },
@@ -211,9 +339,9 @@ class MachineLearning:
             if prediction != actual:
                 # Add to the training set
                 training_record = X_test.iloc[idx]
-                self.logger.info(f'index: {idx}, prediction: {prediction}, actual: {actual}')
+                self.logger.info(
+                    f'index: {idx}, prediction: {prediction}, actual: {actual}')
                 new_train = new_train.append(training_record)
-                
 
         # Predict the previously trained YES (code_comprehension_related).
         test_data = [
