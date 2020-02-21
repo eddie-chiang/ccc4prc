@@ -93,11 +93,15 @@ class MachineLearning:
         target = seed['code_comprehension_related']
         features = seed[[
             'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
-        X_train, X_test, y_train, y_test = train_test_split(features,
-                                                            target,
-                                                            test_size=0.2,  # 20%
-                                                            random_state=2019,  # An arbitrary seed so the results can be reproduced
-                                                            stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
+        X_train, _, y_train, _ = train_test_split(features,
+                                                  target,
+                                                  test_size=0.2,  # 20%
+                                                  random_state=2019,  # An arbitrary seed so the results can be reproduced
+                                                  stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
+
+        X_test = test_dataset[[
+            'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
+        y_test = test_dataset['code_comprehension_related']
 
         # Train the model using the training sets.
         classifier.fit(X_train, y_train)
@@ -109,43 +113,6 @@ class MachineLearning:
         # Model accuracy, how often is the classifier correct?
         self.logger.info(
             f'{metrics.classification_report(y_test, y_pred, digits=8)}')
-
-        new_train = X_train
-        # Find incorrect predictions
-        # Scenario: Pool-Based sampling, batch size = 10.
-        # Query Strategy: Least Confidence
-        # Small labeled data set is called the seed.
-        # Console prompt to ask the Oracle for the label.
-        # Stop criteria: Stop at X iteration, or compare with a separate test set to see how the performance has improved or stagnated.
-        for idx, prediction in enumerate(y_pred):
-            actual = y_test.iloc[idx]
-
-            if prediction != actual:
-                # Add to the training set
-                training_record = X_test.iloc[idx]
-                self.logger.info(
-                    f'index: {idx}, prediction: {prediction}, actual: {actual}')
-                new_train = new_train.append(training_record)
-
-        # Predict the previously trained YES (code_comprehension_related).
-        test_data = [
-            ['Should this commented out code still be in here?',
-                'ynQuestion', False, 'Yes'],
-            ['Can this be private?', 'ynQuestion', False, 'Yes'],
-            ['Can it work with "parallel: true"?', 'Emphasis', False, 'Yes'],
-            ['I am confused, aren\'t we using `__`?', 'Emphasis', False, 'Yes'],
-            ['No need for DatabaseJournalEntry?', 'ynQuestion', False, 'Yes'],
-            ['Fixed with #470 ', 'System', True, 'No'],
-            ['same comments apply as in python method case', 'Clarify', False, 'No'],
-        ]
-        test = DataFrame(test_data, columns=[
-                         'body', 'dialogue_act_classification_ml', 'comment_is_by_author', 'code_comprehension_related'])
-        result_pred = classifier.predict(
-            test[['body', 'dialogue_act_classification_ml', 'comment_is_by_author']])
-        result_test = test['code_comprehension_related']
-
-        self.logger.info(
-            f'{metrics.classification_report(result_test, result_pred, digits=2)}')
 
         return classifier
 
