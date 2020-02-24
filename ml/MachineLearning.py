@@ -91,7 +91,7 @@ class MachineLearning:
         target = seed['code_comprehension_related']
         features = seed[[
             'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
-        X_train, sample_pool_X_test, y_train, sample_pool_y_test = train_test_split(features,
+        X_train, feature_sample_pool, y_train, label_sample_pool = train_test_split(features,
                                                                                     target,
                                                                                     test_size=0.2,  # 20%
                                                                                     random_state=2019,  # An arbitrary seed so the results can be reproduced
@@ -110,82 +110,48 @@ class MachineLearning:
         self.logger.info(
             f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
-        # Pool-based Sampling, to select instances with the Least Confidence.
-        sample_pool_pred_prob = classifier.predict_proba(sample_pool_X_test)
-        new_instances_X_train, new_instances_y_train, sample_pool_X_test, sample_pool_y_test = self.__get_new_instances(
-            sample_pool_pred_prob, sample_pool_X_test, sample_pool_y_test)
-
-        X_train = X_train.append(new_instances_X_train)
-        y_train = y_train.append(new_instances_y_train)
-
-        # Train the model using the training sets.
-        classifier.fit(X_train, y_train)
-
-        y_pred = classifier.predict(X_test)
-
-        # Model accuracy, how often is the classifier correct?
         self.logger.info('First iteration of Active Learning')
-        self.logger.info(
-            f'{metrics.classification_report(y_test, y_pred, digits=8)}')
-
-        # Pool-based Sampling, to select instances with the Least Confidence.
-        sample_pool_pred_prob = classifier.predict_proba(sample_pool_X_test)
-        new_instances_X_train, new_instances_y_train, sample_pool_X_test, sample_pool_y_test = self.__get_new_instances(
-            sample_pool_pred_prob, sample_pool_X_test, sample_pool_y_test)
-
-        X_train = X_train.append(new_instances_X_train)
-        y_train = y_train.append(new_instances_y_train)
-
-        # Train the model using the training sets.
-        classifier.fit(X_train, y_train)
-
-        y_pred = classifier.predict(X_test)
-
-        # Model accuracy, how often is the classifier correct?
+        X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
         self.logger.info('Second iteration of Active Learning')
-        self.logger.info(
-            f'{metrics.classification_report(y_test, y_pred, digits=8)}')
-
-        # Pool-based Sampling, to select instances with the Least Confidence.
-        sample_pool_pred_prob = classifier.predict_proba(sample_pool_X_test)
-        new_instances_X_train, new_instances_y_train, sample_pool_X_test, sample_pool_y_test = self.__get_new_instances(
-            sample_pool_pred_prob, sample_pool_X_test, sample_pool_y_test)
-
-        X_train = X_train.append(new_instances_X_train)
-        y_train = y_train.append(new_instances_y_train)
-
-        # Train the model using the training sets.
-        classifier.fit(X_train, y_train)
-
-        y_pred = classifier.predict(X_test)
-
-        # Model accuracy, how often is the classifier correct?
+        X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
         self.logger.info('Third iteration of Active Learning')
-        self.logger.info(
-            f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+        X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
 
         return classifier
 
-    # def __iterate(self, classifer, sample_pool_: DataFrame):
-    #     """Perform an iteration of Active learning.
-    #     """
-    #     # Pool-based Sampling, to select instances with the Least Confidence.
-    #     sample_pool_pred_prob = classifier.predict_proba(sample_pool_X_test)
-    #     new_instances_X_train, new_instances_y_train = self.__get_new_instances(
-    #         sample_pool_pred_prob, sample_pool_X_test, sample_pool_y_test)
+    def __iterate(self, classifier, X_train: DataFrame, X_test: DataFrame, y_train: DataFrame, y_test: DataFrame, feature_sample_pool: DataFrame, label_sample_pool: DataFrame):
+        """Perform an iteration of Active learning.
+        Scenario: Pool-based Sampling.
+        Query Strategy: Least Confidence.
 
-    #     X_train = X_train.append(new_instances_X_train)
-    #     y_train = y_train.append(new_instances_y_train)
+        Args:
+            classifier:
+            X_train:
+            X_test:
+            y_train:
+            y_test:
+            feature_sample_pool:
+            label_sample_pool:
+        Return:
 
-    #     # Train the model using the training sets.
-    #     classifier.fit(X_train, y_train)
+        """
+        sample_pool_pred_prob = classifier.predict_proba(feature_sample_pool)
+        new_instances_X_train, new_instances_y_train, feature_sample_pool, label_sample_pool = self.__get_new_instances(
+            sample_pool_pred_prob, feature_sample_pool, label_sample_pool)
 
-    #     y_pred = classifier.predict(X_test)
+        X_train = X_train.append(new_instances_X_train)
+        y_train = y_train.append(new_instances_y_train)
 
-    #     # Model accuracy, how often is the classifier correct?
-    #     self.logger.info('First iteration of Active Learning')
-    #     self.logger.info(
-    #         f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+        # Train the model using the training sets.
+        classifier.fit(X_train, y_train)
+
+        y_pred = classifier.predict(X_test)
+
+        # Model accuracy, how often is the classifier correct?
+        self.logger.info(
+            f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+        
+        return X_train, y_train, feature_sample_pool, label_sample_pool
 
     def __get_new_instances(self, predict_proba_result: [], features: DataFrame, labels: DataFrame):
         """Use scenario "Pool-based Sampling" to select instances with the Least Confidence, 
