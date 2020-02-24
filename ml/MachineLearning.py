@@ -91,7 +91,7 @@ class MachineLearning:
         target = seed['code_comprehension_related']
         features = seed[[
             'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
-        X_train, _, y_train, _ = train_test_split(features,
+        X_train, sample_pool, y_train, _ = train_test_split(features,
                                                   target,
                                                   test_size=0.2,  # 20%
                                                   random_state=2019,  # An arbitrary seed so the results can be reproduced
@@ -104,15 +104,44 @@ class MachineLearning:
         # Train the model using the training sets.
         classifier.fit(X_train, y_train)
 
-        # Predict the response for test set.
         y_pred = classifier.predict(X_test)
-        y_pred_prob = classifier.predict_proba(X_test)
-
+        
         # Model accuracy, how often is the classifier correct?
         self.logger.info(
             f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
+        # Pool-based Sampling, to select instances with the Least Confidence.
+        sample_pool_pred_prob = classifier.predict_proba(sample_pool)
+        lc_indices = self.__query_least_confident(sample_pool_pred_prob, batch_size = 5)
+
+
+        # for idx, labels_probs in enumerate(sample_pool_pred_prob):
+            
+
+        #     if prediction != actual:
+        #         # Add to the training set
+        #         training_record = X_test.iloc[idx]
+        #         self.logger.info(
+        #             f'index: {idx}, prediction: {prediction}, actual: {actual}')
+        #         new_train = new_train.append(training_record)
+        
+
         return classifier
+    
+    def __query_least_confident(self, predict_proba_result: [], batch_size: int):
+        """Find the instances with the Least Confidence from the result of predict_proba().
+
+        Args:
+            predict_proba_result (array): Predicted values from predict_proba().
+            batch_size (int): How many instances to add for each Active Learning iteration.
+        Returns:
+            result (array): List of indices of predict_proba_result with the Least Confidence.
+        """
+        diff = numpy.diff(predict_proba_result)
+        diff = numpy.absolute(diff)        
+        diff = diff.flatten()        
+        lc_indices = numpy.argpartition(diff, batch_size)
+        return lc_indices[:batch_size]
 
     def learn(self, seed: DataFrame, unlabeled_dataset: DataFrame):
         """Using Scikit-learn and supervised training to create a machine learning model.
