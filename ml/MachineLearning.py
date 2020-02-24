@@ -72,20 +72,20 @@ class MachineLearning:
                 'categorical_transformer': 1.0,
                 # 'comment_is_by_author_pipeline': 0.1,
             },
-            verbose=True)
+            verbose=False)
 
         full_pipeline = Pipeline(
             steps=[
                 ("preprocessor", column_transformer),
                 ('classifier', SVC(kernel='linear', probability=True))],
-            verbose=True)
+            verbose=False)
 
         # Use Grid Search to perform hyper parameter tuning in order to determine the optimal values for the machine learning model.
         # TODO tweak the search params.
         # {'feature_union__tfdif_features__tfidf__use_idf': (True, False)}
         grid_search_cv_params = {}
         classifier = GridSearchCV(
-            full_pipeline, grid_search_cv_params, cv=5, verbose=2)
+            full_pipeline, grid_search_cv_params, cv=5, verbose=0)
 
         # Split data into training and test sets.
         target = seed['code_comprehension_related']
@@ -112,8 +112,57 @@ class MachineLearning:
 
         # Pool-based Sampling, to select instances with the Least Confidence.
         sample_pool_pred_prob = classifier.predict_proba(sample_pool_X_test)
-        new_instances_X_test, new_instances_y_test = self.__get_new_instances(
+        new_instances_X_train, new_instances_y_train = self.__get_new_instances(
             sample_pool_pred_prob, sample_pool_X_test, sample_pool_y_test)
+
+        X_train = X_train.append(new_instances_X_train)
+        y_train = y_train.append(new_instances_y_train)
+
+        # Train the model using the training sets.
+        classifier.fit(X_train, y_train)
+
+        y_pred = classifier.predict(X_test)
+
+        # Model accuracy, how often is the classifier correct?
+        self.logger.info('First iteration of Active Learning')
+        self.logger.info(
+            f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+
+        # Pool-based Sampling, to select instances with the Least Confidence.
+        sample_pool_pred_prob = classifier.predict_proba(sample_pool_X_test)
+        new_instances_X_train, new_instances_y_train = self.__get_new_instances(
+            sample_pool_pred_prob, sample_pool_X_test, sample_pool_y_test)
+
+        X_train = X_train.append(new_instances_X_train)
+        y_train = y_train.append(new_instances_y_train)
+
+        # Train the model using the training sets.
+        classifier.fit(X_train, y_train)
+
+        y_pred = classifier.predict(X_test)
+
+        # Model accuracy, how often is the classifier correct?
+        self.logger.info('Second iteration of Active Learning')
+        self.logger.info(
+            f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+
+        # Pool-based Sampling, to select instances with the Least Confidence.
+        sample_pool_pred_prob = classifier.predict_proba(sample_pool_X_test)
+        new_instances_X_train, new_instances_y_train = self.__get_new_instances(
+            sample_pool_pred_prob, sample_pool_X_test, sample_pool_y_test)
+
+        X_train = X_train.append(new_instances_X_train)
+        y_train = y_train.append(new_instances_y_train)
+
+        # Train the model using the training sets.
+        classifier.fit(X_train, y_train)
+
+        y_pred = classifier.predict(X_test)
+
+        # Model accuracy, how often is the classifier correct?
+        self.logger.info('Third iteration of Active Learning')
+        self.logger.info(
+            f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
         return classifier
 
