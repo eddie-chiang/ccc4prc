@@ -91,11 +91,11 @@ class MachineLearning:
         target = seed['code_comprehension_related']
         features = seed[[
             'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
-        X_train, sample_pool, y_train, _ = train_test_split(features,
-                                                  target,
-                                                  test_size=0.2,  # 20%
-                                                  random_state=2019,  # An arbitrary seed so the results can be reproduced
-                                                  stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
+        X_train, sample_pool_X_test, y_train, sample_pool_y_test = train_test_split(features,
+                                                                                    target,
+                                                                                    test_size=0.2,  # 20%
+                                                                                    random_state=2019,  # An arbitrary seed so the results can be reproduced
+                                                                                    stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
 
         X_test = test_dataset[[
             'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
@@ -105,29 +105,37 @@ class MachineLearning:
         classifier.fit(X_train, y_train)
 
         y_pred = classifier.predict(X_test)
-        
+
         # Model accuracy, how often is the classifier correct?
         self.logger.info(
             f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
         # Pool-based Sampling, to select instances with the Least Confidence.
-        sample_pool_pred_prob = classifier.predict_proba(sample_pool)
-        lc_indices = self.__query_least_confident(sample_pool_pred_prob, batch_size = 5)
-
-
-        # for idx, labels_probs in enumerate(sample_pool_pred_prob):
-            
-
-        #     if prediction != actual:
-        #         # Add to the training set
-        #         training_record = X_test.iloc[idx]
-        #         self.logger.info(
-        #             f'index: {idx}, prediction: {prediction}, actual: {actual}')
-        #         new_train = new_train.append(training_record)
-        
+        sample_pool_pred_prob = classifier.predict_proba(sample_pool_X_test)
+        new_instances_X_test, new_instances_y_test = self.__get_new_instances(
+            sample_pool_pred_prob, sample_pool_X_test, sample_pool_y_test)
 
         return classifier
-    
+
+    def __get_new_instances(self, predict_proba_result: [], features: DataFrame, labels: DataFrame):
+        """Use scenario "Pool-based Sampling" to select instances with the Least Confidence, 
+        to add to the training dataset.
+
+        Args:
+            predict_proba_result (array): Predicted values from predict_proba().
+            features (DataFrame):
+            labels (DataFrame):
+        Return: 
+            new_features_dataset (DataFrame): new instances to add to Active Learning training dataset.
+            new_labels_dataset (DataFrame): new instances to add to Active Learning training dataset.
+        """
+        lc_indices = self.__query_least_confident(
+            predict_proba_result, batch_size=5)
+        new_features_dataset = features.iloc[lc_indices]
+        new_labels_dataset = labels.iloc[lc_indices]
+
+        return new_features_dataset, new_labels_dataset
+
     def __query_least_confident(self, predict_proba_result: [], batch_size: int):
         """Find the instances with the Least Confidence from the result of predict_proba().
 
@@ -138,8 +146,8 @@ class MachineLearning:
             result (array): List of indices of predict_proba_result with the Least Confidence.
         """
         diff = numpy.diff(predict_proba_result)
-        diff = numpy.absolute(diff)        
-        diff = diff.flatten()        
+        diff = numpy.absolute(diff)
+        diff = diff.flatten()
         lc_indices = numpy.argpartition(diff, batch_size)
         return lc_indices[:batch_size]
 
