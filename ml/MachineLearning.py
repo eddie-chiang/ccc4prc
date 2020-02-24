@@ -22,12 +22,11 @@ class MachineLearning:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def active_learn(self, seed: DataFrame, unlabeled_dataset: DataFrame, test_dataset: DataFrame):
+    def active_learn(self, seed: DataFrame, test_dataset: DataFrame):
         """Using Scikit-learn, supervised training and active learning to create a machine learning model.
 
         Args:
             seed (DataFrame): Data with the labeled training set.
-            unlabeled_dataset (DataFrame): Unlabeled dataset for active learning to select more samples.
             test_dataset (DataFrame): Separate test dataset to measure the performance of the machine learning model.
         Returns:
             model: a trained machine learning model.
@@ -57,7 +56,6 @@ class MachineLearning:
             ]
         ]
 
-        # TODO separate out categorical_transformer into individual transformer for dialogue_act_classification_ml and comment_is_by_author.
         column_transformer = ColumnTransformer(
             transformers=[
                 ('body_bow_pipeline', CountVectorizer(
