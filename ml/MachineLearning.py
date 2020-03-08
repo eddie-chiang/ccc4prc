@@ -53,6 +53,7 @@ class MachineLearning:
         pool_pred_prob = classifier.predict_proba(pool)
         lc_indices = self.__query_least_confident(pool_pred_prob, batch_size=5)
         lc_instances = pool.iloc[lc_indices]
+        lc_instances_prob = [pool_pred_prob[i] for i in lc_indices]
         lc_instances.to_csv('/Volumes/RamDisk/lc_instances.csv')
 
         # Send to Oracle to Label.
