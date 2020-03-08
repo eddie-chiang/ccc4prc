@@ -6,11 +6,11 @@ from estimator import DataSubsetSelector, PosTagEstimator, SingleFeatureOneHotEn
 from pandas import DataFrame
 from sklearn import metrics
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import RandomForestRegressor
+# from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.model_selection import GridSearchCV, train_test_split
-from sklearn.naive_bayes import GaussianNB
-from sklearn.naive_bayes import MultinomialNB
+# from sklearn.naive_bayes import GaussianNB
+# from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.svm import SVC
@@ -44,17 +44,8 @@ class MachineLearning:
         y_train = training_dataset[self.LABEL]
         y_true = test_dataset[self.LABEL]
 
-        # Train the model using the training sets.
-        classifier.fit(X_train, y_train)
-
-        y_pred = classifier.predict(X_test)
-
-        # Model accuracy, how often is the classifier correct?
-        self.logger.info(
-            f'{metrics.classification_report(y_true, y_pred, digits=8)}')
-
-        report = metrics.classification_report(
-            y_true, y_pred, digits=8, output_dict=True)
+        classifier, report = self.__train_model(
+            classifier, X_train, X_test, y_train, y_true)
 
         # self.logger.info('First iteration of Active Learning')
         # X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(
@@ -65,6 +56,19 @@ class MachineLearning:
         # self.logger.info('Third iteration of Active Learning')
         # X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(
         #     classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
+
+        return classifier, report
+
+    def __train_model(self, classifier, X_train: DataFrame, X_test: DataFrame, y_train: DataFrame, y_true: DataFrame):
+        classifier.fit(X_train, y_train)
+        y_pred = classifier.predict(X_test)
+
+        # Model accuracy, how often is the classifier correct?
+        self.logger.info(
+            f'{metrics.classification_report(y_true, y_pred, digits=8)}')
+
+        report = metrics.classification_report(
+            y_true, y_pred, digits=8, output_dict=True)
 
         return classifier, report
 
