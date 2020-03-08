@@ -26,13 +26,13 @@ class MachineLearning:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def active_learn(self, training_dataset: DataFrame, test_dataset: DataFrame, unlabeled_data_set: DataFrame):
+    def active_learn(self, training_dataset: DataFrame, test_dataset: DataFrame, unlabeled_dataset: DataFrame):
         """Using Scikit-learn, supervised training and active learning to create a machine learning model.
 
         Args:
             training_dataset (DataFrame): Training dataset, including new instances from active learning.
             test_dataset (DataFrame): Separate test dataset to measure the performance of the machine learning model.
-            unlabeled_data_set (DataFrame): Pool of unlabeled data for pool-based sampling to select new instances from.
+            unlabeled_dataset (DataFrame): Pool of unlabeled data for pool-based sampling to select new instances from.
         Returns:
             model: a trained machine learning model.
         """
@@ -46,6 +46,18 @@ class MachineLearning:
 
         classifier, report = self.__train_model(
             classifier, X_train, X_test, y_train, y_true)
+
+        # Scenario: Pool-based Sampling.
+        # Query Strategy: Least Confidence.
+        pool = unlabeled_dataset[self.FEATURES]
+        pool_pred_prob = classifier.predict_proba(pool)
+        lc_indices = self.__query_least_confident(pool_pred_prob, batch_size=5)
+        lc_instances = pool.iloc[lc_indices]
+        lc_instances.to_csv('/Volumes/RamDisk/lc_instances.csv')
+
+        # Send to Oracle to Label.
+        
+
 
         # self.logger.info('First iteration of Active Learning')
         # X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(
@@ -132,63 +144,63 @@ class MachineLearning:
 
         return classifier
 
-    def __iterate(self, classifier, X_train: DataFrame, X_test: DataFrame, y_train: DataFrame, y_test: DataFrame, feature_sample_pool: DataFrame, label_sample_pool: DataFrame):
-        """Perform an iteration of Active learning.
-        Scenario: Pool-based Sampling.
-        Query Strategy: Least Confidence.
+    # def __iterate(self, classifier, X_train: DataFrame, X_test: DataFrame, y_train: DataFrame, y_test: DataFrame, feature_sample_pool: DataFrame, label_sample_pool: DataFrame):
+    #     """Perform an iteration of Active learning.
+    #     Scenario: Pool-based Sampling.
+    #     Query Strategy: Least Confidence.
 
-        Args:
-            classifier:
-            X_train:
-            X_test:
-            y_train:
-            y_test:
-            feature_sample_pool:
-            label_sample_pool:
-        Return:
+    #     Args:
+    #         classifier:
+    #         X_train:
+    #         X_test:
+    #         y_train:
+    #         y_test:
+    #         feature_sample_pool:
+    #         label_sample_pool:
+    #     Return:
 
-        """
-        sample_pool_pred_prob = classifier.predict_proba(feature_sample_pool)
-        new_instances_X_train, new_instances_y_train, feature_sample_pool, label_sample_pool = self.__get_new_instances(
-            sample_pool_pred_prob, feature_sample_pool, label_sample_pool)
+    #     """
+    #     sample_pool_pred_prob = classifier.predict_proba(feature_sample_pool)
+    #     new_instances_X_train, new_instances_y_train, feature_sample_pool, label_sample_pool = self.__get_new_instances(
+    #         sample_pool_pred_prob, feature_sample_pool, label_sample_pool)
 
-        X_train = X_train.append(new_instances_X_train)
-        y_train = y_train.append(new_instances_y_train)
+    #     X_train = X_train.append(new_instances_X_train)
+    #     y_train = y_train.append(new_instances_y_train)
 
-        # Train the model using the training sets.
-        classifier.fit(X_train, y_train)
+    #     # Train the model using the training sets.
+    #     classifier.fit(X_train, y_train)
 
-        y_pred = classifier.predict(X_test)
+    #     y_pred = classifier.predict(X_test)
 
-        # Model accuracy, how often is the classifier correct?
-        self.logger.info(
-            f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+    #     # Model accuracy, how often is the classifier correct?
+    #     self.logger.info(
+    #         f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
-        return X_train, y_train, feature_sample_pool, label_sample_pool
+    #     return X_train, y_train, feature_sample_pool, label_sample_pool
 
-    def __get_new_instances(self, predict_proba_result: [], features: DataFrame, labels: DataFrame):
-        """Use scenario "Pool-based Sampling" to select instances with the Least Confidence, 
-        to add to the training dataset.
+    # def __get_new_instances(self, predict_proba_result: [], features: DataFrame, labels: DataFrame):
+    #     """Use scenario "Pool-based Sampling" to select instances with the Least Confidence, 
+    #     to add to the training dataset.
 
-        Args:
-            predict_proba_result (array): Predicted values from predict_proba().
-            features (DataFrame): Features dataset sample pool.
-            labels (DataFrame): Labels dataset sample pool.
-        Return: 
-            new_features_dataset (DataFrame): New instances to add to Active Learning training dataset.
-            new_labels_dataset (DataFrame): New instances to add to Active Learning training dataset.
-            features (DataFrame): Updated features dataset with the selected instances removed.
-            labels (DataFrame): Updated labels dataset with the selected instances removed.
-        """
-        lc_indices = self.__query_least_confident(
-            predict_proba_result, batch_size=5)
-        new_features_dataset = features.iloc[lc_indices]
-        new_labels_dataset = labels.iloc[lc_indices]
+    #     Args:
+    #         predict_proba_result (array): Predicted values from predict_proba().
+    #         features (DataFrame): Features dataset sample pool.
+    #         labels (DataFrame): Labels dataset sample pool.
+    #     Return: 
+    #         new_features_dataset (DataFrame): New instances to add to Active Learning training dataset.
+    #         new_labels_dataset (DataFrame): New instances to add to Active Learning training dataset.
+    #         features (DataFrame): Updated features dataset with the selected instances removed.
+    #         labels (DataFrame): Updated labels dataset with the selected instances removed.
+    #     """
+    #     lc_indices = self.__query_least_confident(
+    #         predict_proba_result, batch_size=5)
+    #     new_features_dataset = features.iloc[lc_indices]
+    #     new_labels_dataset = labels.iloc[lc_indices]
 
-        features = features.drop(new_features_dataset.index.values)
-        labels = labels.drop(new_labels_dataset.index.values)
+    #     features = features.drop(new_features_dataset.index.values)
+    #     labels = labels.drop(new_labels_dataset.index.values)
 
-        return new_features_dataset, new_labels_dataset, features, labels
+    #     return new_features_dataset, new_labels_dataset, features, labels
 
     def __query_least_confident(self, predict_proba_result: [], batch_size: int):
         """Find the instances with the Least Confidence from the result of predict_proba().
