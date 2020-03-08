@@ -19,19 +19,58 @@ from sklearn.svm import SVC
 class MachineLearning:
     """A machine learning class for supervised learning to create a model."""
 
+    FEATURES = ['body', 'dialogue_act_classification_ml',
+                'comment_is_by_author']
+    LABEL = 'code_comprehension_related'
+
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def active_learn(self, seed: DataFrame, test_dataset: DataFrame):
+    def active_learn(self, training_dataset: DataFrame, test_dataset: DataFrame, unlabeled_data_set: DataFrame):
         """Using Scikit-learn, supervised training and active learning to create a machine learning model.
 
         Args:
-            seed (DataFrame): Data with the labeled training set.
+            training_dataset (DataFrame): Training dataset, including new instances from active learning.
             test_dataset (DataFrame): Separate test dataset to measure the performance of the machine learning model.
+            unlabeled_data_set (DataFrame): Pool of unlabeled data for pool-based sampling to select new instances from.
         Returns:
             model: a trained machine learning model.
         """
 
+        classifier = self.__get_classifier()
+
+        X_train = training_dataset[self.FEATURES]
+        X_test = test_dataset[self.FEATURES]
+        y_train = training_dataset[self.LABEL]
+        y_true = test_dataset[self.LABEL]
+
+        # Train the model using the training sets.
+        classifier.fit(X_train, y_train)
+
+        y_pred = classifier.predict(X_test)
+
+        # Model accuracy, how often is the classifier correct?
+        self.logger.info(
+            f'{metrics.classification_report(y_true, y_pred, digits=8)}')
+
+        report = metrics.classification_report(
+            y_true, y_pred, digits=8, output_dict=True)
+
+        # self.logger.info('First iteration of Active Learning')
+        # X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(
+        #     classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
+        # self.logger.info('Second iteration of Active Learning')
+        # X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(
+        #     classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
+        # self.logger.info('Third iteration of Active Learning')
+        # X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(
+        #     classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
+
+        return classifier, report
+
+    def __get_classifier(self):
+        """ Construct and return a machine learning classifier.
+        """
         one_hot_encoder_categories = [
             [
                 'Accept',
@@ -87,36 +126,6 @@ class MachineLearning:
         classifier = GridSearchCV(
             full_pipeline, grid_search_cv_params, cv=5, verbose=0)
 
-        # Split data into training and test sets.
-        target = seed['code_comprehension_related']
-        features = seed[[
-            'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
-        X_train, feature_sample_pool, y_train, label_sample_pool = train_test_split(features,
-                                                                                    target,
-                                                                                    test_size=0.2,  # 20%
-                                                                                    random_state=2019,  # An arbitrary seed so the results can be reproduced
-                                                                                    stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
-
-        X_test = test_dataset[[
-            'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
-        y_test = test_dataset['code_comprehension_related']
-
-        # Train the model using the training sets.
-        classifier.fit(X_train, y_train)
-
-        y_pred = classifier.predict(X_test)
-
-        # Model accuracy, how often is the classifier correct?
-        self.logger.info(
-            f'{metrics.classification_report(y_test, y_pred, digits=8)}')
-
-        self.logger.info('First iteration of Active Learning')
-        X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
-        self.logger.info('Second iteration of Active Learning')
-        X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
-        self.logger.info('Third iteration of Active Learning')
-        X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
-
         return classifier
 
     def __iterate(self, classifier, X_train: DataFrame, X_test: DataFrame, y_train: DataFrame, y_test: DataFrame, feature_sample_pool: DataFrame, label_sample_pool: DataFrame):
@@ -150,7 +159,7 @@ class MachineLearning:
         # Model accuracy, how often is the classifier correct?
         self.logger.info(
             f'{metrics.classification_report(y_test, y_pred, digits=8)}')
-        
+
         return X_train, y_train, feature_sample_pool, label_sample_pool
 
     def __get_new_instances(self, predict_proba_result: [], features: DataFrame, labels: DataFrame):
@@ -192,245 +201,271 @@ class MachineLearning:
         lc_indices = numpy.argpartition(diff, batch_size)
         return lc_indices[:batch_size]
 
-    def learn(self, seed: DataFrame, unlabeled_dataset: DataFrame):
-        """Using Scikit-learn and supervised training to create a machine learning model.
+    def train_test_split(self, data: DataFrame):
+        """Split data into training and test datasets.
 
         Args:
-            seed (DataFrame): Data with the labeled training and test sets.
-            unlabeled_dataset: Unlabeled dataset for active learning to select more samples.
-        Returns:
-            model: a trained machine learning model.
+            data (DataFrame): Sample dataset with the labeled data.
+         Returns:
+            tuple: (
+                DataFrame: Training dataset.
+                DataFrame: Test dataset.
+            )
         """
+        target = data[self.LABEL]
+        features = data[self.FEATURES]
 
-        # # Create a Gaussian Naive Bayes classifier.
-        # model = GaussianNB()
+        X_train, X_test, _, _ = train_test_split(
+            features,
+            target,
+            test_size=0.2,  # 20%
+            random_state=2019,  # An arbitrary seed so the results can be reproduced
+            stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
 
-        # # Declare data preprocessing steps.
-        # # Encode features, i.e. convert string labels into numbers.
-        # label_encoder = preprocessing.LabelEncoder()
+        training_dataset = data.iloc[X_train.index]
+        test_dataset = data.iloc[X_test.index]
 
-        # dialogue_act_classification_ml = data_frame['dialogue_act_classification_ml']
-        # dialogue_act_classification_ml_encoded = label_encoder.fit_transform(
-        #     dialogue_act_classification_ml)
+        return training_dataset, test_dataset
 
-        # comment_is_by_author = data_frame['comment_is_by_author']
-        # comment_is_by_author_encoded = label_encoder.fit_transform(
-        #     comment_is_by_author)
+    # def learn(self, seed: DataFrame, unlabeled_dataset: DataFrame):
+    #     """Using Scikit-learn and supervised training to create a machine learning model.
 
-        # # body = data_frame['body']
-        # # count_vectorizer = CountVectorizer(stop_words='english')
+    #     Args:
+    #         seed (DataFrame): Data with the labeled training and test sets.
+    #         unlabeled_dataset: Unlabeled dataset for active learning to select more samples.
+    #     Returns:
+    #         model: a trained machine learning model.
+    #     """
 
-        # # Combinig features into single listof tuples
-        # features = list(zip(dialogue_act_classification_ml_encoded,
-        #                     comment_is_by_author_encoded))
+    #     # # Create a Gaussian Naive Bayes classifier.
+    #     # model = GaussianNB()
 
-        # # Split data into training and test sets.
-        # target = data_frame['code_comprehension_related']
-        # X_train, X_test, y_train, y_test = train_test_split(features,
-        #                                                     target,
-        #                                                     test_size=0.2,  # 20%
-        #                                                     random_state=2019,  # An arbitrary seed so the results can be reproduced
-        #                                                     stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
+    #     # # Declare data preprocessing steps.
+    #     # # Encode features, i.e. convert string labels into numbers.
+    #     # label_encoder = preprocessing.LabelEncoder()
 
-        # # Train the model using the training sets.
-        # model.fit(X_train, y_train)
+    #     # dialogue_act_classification_ml = data_frame['dialogue_act_classification_ml']
+    #     # dialogue_act_classification_ml_encoded = label_encoder.fit_transform(
+    #     #     dialogue_act_classification_ml)
 
-        # # Predict the response for test set.
-        # y_pred = model.predict(X_test)
+    #     # comment_is_by_author = data_frame['comment_is_by_author']
+    #     # comment_is_by_author_encoded = label_encoder.fit_transform(
+    #     #     comment_is_by_author)
 
-        # # Model accuracy, how often is the classifier correct?
-        # self.logger.info(f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+    #     # # body = data_frame['body']
+    #     # # count_vectorizer = CountVectorizer(stop_words='english')
 
-        # return model
+    #     # # Combinig features into single listof tuples
+    #     # features = list(zip(dialogue_act_classification_ml_encoded,
+    #     #                     comment_is_by_author_encoded))
 
-        # # Create a Multinomial Naive Bayes classifier.
-        # # Make a pipeline for data preprocessing.
-        # # Encode features, i.e. convert string labels into numbers.
-        # classifier = make_pipeline(preprocessing.OneHotEncoder(), MultinomialNB())
+    #     # # Split data into training and test sets.
+    #     # target = data_frame['code_comprehension_related']
+    #     # X_train, X_test, y_train, y_test = train_test_split(features,
+    #     #                                                     target,
+    #     #                                                     test_size=0.2,  # 20%
+    #     #                                                     random_state=2019,  # An arbitrary seed so the results can be reproduced
+    #     #                                                     stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
 
-        # # Split data into training and test sets.
-        # target = data_frame['code_comprehension_related']
-        # features = data_frame[['dialogue_act_classification_ml', 'comment_is_by_author']]
-        # X_train, X_test, y_train, y_test = train_test_split(features,
-        #                                                     target,
-        #                                                     test_size=0.2,  # 20%
-        #                                                     random_state=2019,  # An arbitrary seed so the results can be reproduced
-        #                                                     stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
+    #     # # Train the model using the training sets.
+    #     # model.fit(X_train, y_train)
 
-        # # Train the model using the training sets.
-        # classifier.fit(X_train, y_train)
+    #     # # Predict the response for test set.
+    #     # y_pred = model.predict(X_test)
 
-        # # Predict the response for test set.
-        # y_pred = classifier.predict(X_test)
+    #     # # Model accuracy, how often is the classifier correct?
+    #     # self.logger.info(f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
-        # # Model accuracy, how often is the classifier correct?
-        # self.logger.info(f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+    #     # return model
 
-        # return classifier
+    #     # # Create a Multinomial Naive Bayes classifier.
+    #     # # Make a pipeline for data preprocessing.
+    #     # # Encode features, i.e. convert string labels into numbers.
+    #     # classifier = make_pipeline(preprocessing.OneHotEncoder(), MultinomialNB())
 
-        # Create a Multinomial Naive Bayes classifier.
-        # Make a pipeline for data preprocessing.
-        # Encode features, i.e. convert string labels into numbers.
-        # body_pipeline = Pipeline(
-        #     steps=[
-        #         ('feature_union', FeatureUnion(
-        #             transformer_list=[
-        #                 ('body', Pipeline([
-        #                     ('selector', DataSubsetSelector(keys='body')),
-        #                     ('cv', CountVectorizer(stop_words='english')),
-        #                     # ('tfidf', TfidfTransformer()),
-        #                 ])),
-        #                 # ('pos_features', Pipeline([
-        #                 #     ('pos', PosTagEstimator(tokenizer=nltk.word_tokenize)),
-        #                 # ])),
-        #             ],
-        #             transformer_weights={
-        #                 'body': 1.0,
-        #             },
-        #         )),
-        #         # Currently SVC has got a better precision/recall and overall accuracy, compared to MultinomialNB.
-        #         ('classifier', SVC(kernel='linear'))],
-        #     verbose=True)
+    #     # # Split data into training and test sets.
+    #     # target = data_frame['code_comprehension_related']
+    #     # features = data_frame[['dialogue_act_classification_ml', 'comment_is_by_author']]
+    #     # X_train, X_test, y_train, y_test = train_test_split(features,
+    #     #                                                     target,
+    #     #                                                     test_size=0.2,  # 20%
+    #     #                                                     random_state=2019,  # An arbitrary seed so the results can be reproduced
+    #     #                                                     stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
 
-        one_hot_encoder_categories = [
-            [
-                'Accept',
-                'Bye',
-                'Clarify',
-                'Continuer',
-                'Emotion',
-                'Emphasis',
-                'Greet',
-                'Other',
-                'Reject',
-                'Statement',
-                'System',
-                'whQuestion',
-                'yAnswer',
-                'nAnswer',
-                'ynQuestion'
-            ],
-            [
-                False,  # 0 should come before 1 for numerical columns.
-                True
-            ]
-        ]
+    #     # # Train the model using the training sets.
+    #     # classifier.fit(X_train, y_train)
 
-        # TODO separate out categorical_transformer into individual transformer for dialogue_act_classification_ml and comment_is_by_author.
-        column_transformer = ColumnTransformer(
-            transformers=[
-                ('body_bow_pipeline', CountVectorizer(
-                    stop_words='english'), 'body'),
-                #('body_ngram_pipeline', CountVectorizer(stop_words='english', ngram_range=(1, 3)), 'body'),
-                ('categorical_transformer', OneHotEncoder(categories=one_hot_encoder_categories), [
-                 'dialogue_act_classification_ml', 'comment_is_by_author']),
-                # ('comment_is_by_author_pipeline',
-                #  SingleFeatureOneHotEncoder(), 'comment_is_by_author'),
-            ],
-            transformer_weights={
-                'body_bow_pipeline': 1.0,
-                # 'body_ngram_pipeline': 0.5,
-                'categorical_transformer': 1.0,
-                # 'comment_is_by_author_pipeline': 0.1,
-            },
-            verbose=True)
+    #     # # Predict the response for test set.
+    #     # y_pred = classifier.predict(X_test)
 
-        full_pipeline = Pipeline(
-            steps=[
-                ("preprocessor", column_transformer),
-                ('classifier', SVC(kernel='linear', probability=True))],
-            verbose=True)
+    #     # # Model accuracy, how often is the classifier correct?
+    #     # self.logger.info(f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
-        # Use Grid Search to perform hyper parameter tuning in order to determine the optimal values for the machine learning model.
-        # TODO tweak the search params.
-        # {'feature_union__tfdif_features__tfidf__use_idf': (True, False)}
-        grid_search_cv_params = {}
-        classifier = GridSearchCV(
-            full_pipeline, grid_search_cv_params, cv=5, verbose=2)
+    #     # return classifier
 
-        # Split data into training and test sets.
-        target = seed['code_comprehension_related']
-        features = seed[[
-            'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
-        X_train, X_test, y_train, y_test = train_test_split(features,
-                                                            target,
-                                                            test_size=0.2,  # 20%
-                                                            random_state=2019,  # An arbitrary seed so the results can be reproduced
-                                                            stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
+    #     # Create a Multinomial Naive Bayes classifier.
+    #     # Make a pipeline for data preprocessing.
+    #     # Encode features, i.e. convert string labels into numbers.
+    #     # body_pipeline = Pipeline(
+    #     #     steps=[
+    #     #         ('feature_union', FeatureUnion(
+    #     #             transformer_list=[
+    #     #                 ('body', Pipeline([
+    #     #                     ('selector', DataSubsetSelector(keys='body')),
+    #     #                     ('cv', CountVectorizer(stop_words='english')),
+    #     #                     # ('tfidf', TfidfTransformer()),
+    #     #                 ])),
+    #     #                 # ('pos_features', Pipeline([
+    #     #                 #     ('pos', PosTagEstimator(tokenizer=nltk.word_tokenize)),
+    #     #                 # ])),
+    #     #             ],
+    #     #             transformer_weights={
+    #     #                 'body': 1.0,
+    #     #             },
+    #     #         )),
+    #     #         # Currently SVC has got a better precision/recall and overall accuracy, compared to MultinomialNB.
+    #     #         ('classifier', SVC(kernel='linear'))],
+    #     #     verbose=True)
 
-        # Train the model using the training sets.
-        classifier.fit(X_train, y_train)
+    #     one_hot_encoder_categories = [
+    #         [
+    #             'Accept',
+    #             'Bye',
+    #             'Clarify',
+    #             'Continuer',
+    #             'Emotion',
+    #             'Emphasis',
+    #             'Greet',
+    #             'Other',
+    #             'Reject',
+    #             'Statement',
+    #             'System',
+    #             'whQuestion',
+    #             'yAnswer',
+    #             'nAnswer',
+    #             'ynQuestion'
+    #         ],
+    #         [
+    #             False,  # 0 should come before 1 for numerical columns.
+    #             True
+    #         ]
+    #     ]
 
-        # Predict the response for test set.
-        y_pred = classifier.predict(X_test)
-        y_pred_prob = classifier.predict_proba(X_test)
+    #     # TODO separate out categorical_transformer into individual transformer for dialogue_act_classification_ml and comment_is_by_author.
+    #     column_transformer = ColumnTransformer(
+    #         transformers=[
+    #             ('body_bow_pipeline', CountVectorizer(
+    #                 stop_words='english'), 'body'),
+    #             #('body_ngram_pipeline', CountVectorizer(stop_words='english', ngram_range=(1, 3)), 'body'),
+    #             ('categorical_transformer', OneHotEncoder(categories=one_hot_encoder_categories), [
+    #              'dialogue_act_classification_ml', 'comment_is_by_author']),
+    #             # ('comment_is_by_author_pipeline',
+    #             #  SingleFeatureOneHotEncoder(), 'comment_is_by_author'),
+    #         ],
+    #         transformer_weights={
+    #             'body_bow_pipeline': 1.0,
+    #             # 'body_ngram_pipeline': 0.5,
+    #             'categorical_transformer': 1.0,
+    #             # 'comment_is_by_author_pipeline': 0.1,
+    #         },
+    #         verbose=True)
 
-        # Model accuracy, how often is the classifier correct?
-        self.logger.info(
-            f'{metrics.classification_report(y_test, y_pred, digits=8)}')
+    #     full_pipeline = Pipeline(
+    #         steps=[
+    #             ("preprocessor", column_transformer),
+    #             ('classifier', SVC(kernel='linear', probability=True))],
+    #         verbose=True)
 
-        new_train = X_train
-        # Find incorrect predictions
-        # Scenario: Pool-Based sampling, batch size = 10.
-        # Query Strategy: Least Confidence
-        # Small labeled data set is called the seed.
-        # Console prompt to ask the Oracle for the label.
-        # Stop criteria: Stop at X iteration, or compare with a separate test set to see how the performance has improved or stagnated.
-        for idx, prediction in enumerate(y_pred):
-            actual = y_test.iloc[idx]
+    #     # Use Grid Search to perform hyper parameter tuning in order to determine the optimal values for the machine learning model.
+    #     # TODO tweak the search params.
+    #     # {'feature_union__tfdif_features__tfidf__use_idf': (True, False)}
+    #     grid_search_cv_params = {}
+    #     classifier = GridSearchCV(
+    #         full_pipeline, grid_search_cv_params, cv=5, verbose=2)
 
-            if prediction != actual:
-                # Add to the training set
-                training_record = X_test.iloc[idx]
-                self.logger.info(
-                    f'index: {idx}, prediction: {prediction}, actual: {actual}')
-                new_train = new_train.append(training_record)
+    #     # Split data into training and test sets.
+    #     target = seed['code_comprehension_related']
+    #     features = seed[[
+    #         'body', 'dialogue_act_classification_ml', 'comment_is_by_author']]
+    #     X_train, X_test, y_train, y_test = train_test_split(features,
+    #                                                         target,
+    #                                                         test_size=0.2,  # 20%
+    #                                                         random_state=2019,  # An arbitrary seed so the results can be reproduced
+    #                                                         stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
 
-        # Predict the previously trained YES (code_comprehension_related).
-        test_data = [
-            ['Should this commented out code still be in here?',
-                'ynQuestion', False, 'Yes'],
-            ['Can this be private?', 'ynQuestion', False, 'Yes'],
-            ['Can it work with "parallel: true"?', 'Emphasis', False, 'Yes'],
-            ['I am confused, aren\'t we using `__`?', 'Emphasis', False, 'Yes'],
-            ['No need for DatabaseJournalEntry?', 'ynQuestion', False, 'Yes'],
-            ['Fixed with #470 ', 'System', True, 'No'],
-            ['same comments apply as in python method case', 'Clarify', False, 'No'],
-        ]
-        test = DataFrame(test_data, columns=[
-                         'body', 'dialogue_act_classification_ml', 'comment_is_by_author', 'code_comprehension_related'])
-        result_pred = classifier.predict(
-            test[['body', 'dialogue_act_classification_ml', 'comment_is_by_author']])
-        result_test = test['code_comprehension_related']
+    #     # Train the model using the training sets.
+    #     classifier.fit(X_train, y_train)
 
-        self.logger.info(
-            f'{metrics.classification_report(result_test, result_pred, digits=2)}')
+    #     # Predict the response for test set.
+    #     y_pred = classifier.predict(X_test)
+    #     y_pred_prob = classifier.predict_proba(X_test)
 
-        return classifier
+    #     # Model accuracy, how often is the classifier correct?
+    #     self.logger.info(
+    #         f'{metrics.classification_report(y_test, y_pred, digits=8)}')
 
-        # TODO Stemming
-        # Example code
-        # Stemming Code
-        # from nltk.stem.snowball import SnowballStemmer
-        # stemmer = SnowballStemmer("english", ignore_stopwords=True)
+    #     new_train = X_train
+    #     # Find incorrect predictions
+    #     # Scenario: Pool-Based sampling, batch size = 10.
+    #     # Query Strategy: Least Confidence
+    #     # Small labeled data set is called the seed.
+    #     # Console prompt to ask the Oracle for the label.
+    #     # Stop criteria: Stop at X iteration, or compare with a separate test set to see how the performance has improved or stagnated.
+    #     for idx, prediction in enumerate(y_pred):
+    #         actual = y_test.iloc[idx]
 
-        # class StemmedCountVectorizer(CountVectorizer):
-        #     def build_analyzer(self):
-        #         analyzer = super(StemmedCountVectorizer, self).build_analyzer()
-        #         return lambda doc: ([stemmer.stem(w) for w in analyzer(doc)])
+    #         if prediction != actual:
+    #             # Add to the training set
+    #             training_record = X_test.iloc[idx]
+    #             self.logger.info(
+    #                 f'index: {idx}, prediction: {prediction}, actual: {actual}')
+    #             new_train = new_train.append(training_record)
 
-        # stemmed_count_vect = StemmedCountVectorizer(stop_words='english')
+    #     # Predict the previously trained YES (code_comprehension_related).
+    #     test_data = [
+    #         ['Should this commented out code still be in here?',
+    #             'ynQuestion', False, 'Yes'],
+    #         ['Can this be private?', 'ynQuestion', False, 'Yes'],
+    #         ['Can it work with "parallel: true"?', 'Emphasis', False, 'Yes'],
+    #         ['I am confused, aren\'t we using `__`?', 'Emphasis', False, 'Yes'],
+    #         ['No need for DatabaseJournalEntry?', 'ynQuestion', False, 'Yes'],
+    #         ['Fixed with #470 ', 'System', True, 'No'],
+    #         ['same comments apply as in python method case', 'Clarify', False, 'No'],
+    #     ]
+    #     test = DataFrame(test_data, columns=[
+    #                      'body', 'dialogue_act_classification_ml', 'comment_is_by_author', 'code_comprehension_related'])
+    #     result_pred = classifier.predict(
+    #         test[['body', 'dialogue_act_classification_ml', 'comment_is_by_author']])
+    #     result_test = test['code_comprehension_related']
 
-        # text_mnb_stemmed = Pipeline([('vect', stemmed_count_vect), ('tfidf', TfidfTransformer()),
-        #                             ('mnb', MultinomialNB(fit_prior=False))])
+    #     self.logger.info(
+    #         f'{metrics.classification_report(result_test, result_pred, digits=2)}')
 
-        # text_mnb_stemmed = text_mnb_stemmed.fit(twenty_train.data, twenty_train.target)
+    #     return classifier
 
-        # predicted_mnb_stemmed = text_mnb_stemmed.predict(twenty_test.data)
+    #     # TODO Stemming
+    #     # Example code
+    #     # Stemming Code
+    #     # from nltk.stem.snowball import SnowballStemmer
+    #     # stemmer = SnowballStemmer("english", ignore_stopwords=True)
 
-        # np.mean(predicted_mnb_stemmed == twenty_test.target)
+    #     # class StemmedCountVectorizer(CountVectorizer):
+    #     #     def build_analyzer(self):
+    #     #         analyzer = super(StemmedCountVectorizer, self).build_analyzer()
+    #     #         return lambda doc: ([stemmer.stem(w) for w in analyzer(doc)])
 
-        # TODO Lemmatization
+    #     # stemmed_count_vect = StemmedCountVectorizer(stop_words='english')
+
+    #     # text_mnb_stemmed = Pipeline([('vect', stemmed_count_vect), ('tfidf', TfidfTransformer()),
+    #     #                             ('mnb', MultinomialNB(fit_prior=False))])
+
+    #     # text_mnb_stemmed = text_mnb_stemmed.fit(twenty_train.data, twenty_train.target)
+
+    #     # predicted_mnb_stemmed = text_mnb_stemmed.predict(twenty_test.data)
+
+    #     # np.mean(predicted_mnb_stemmed == twenty_test.target)
+
+    #     # TODO Lemmatization
 
 
 # https://github.com/scikit-learn/scikit-learn/issues/12494
