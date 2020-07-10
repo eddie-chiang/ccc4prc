@@ -1,25 +1,22 @@
 # import collections
-import confuse
 # import csv
 # import gensim
 import logging
-import pandas
-import sys
-import time
-from commentprocessing import CommentLoader, GitHubPullRequestHelper
-from dialogueactclassification import Classifier
-from ghtorrent import BigQueryCsvFileProcessor
-from manuallabeling import FileGenerator
-from ml import MachineLearning
-# from gensim.utils import simple_preprocess
-from nltk.stem import WordNetLemmatizer, SnowballStemmer
 # from nltk.stem.porter import *
 from pathlib import Path
-from playsound import playsound
+
+import confuse
+import pandas
+# from gensim.utils import simple_preprocess
+from nltk.stem import SnowballStemmer, WordNetLemmatizer
+
+from dialogueactclassification import Classifier
+from manuallabeling import FileGenerator
+from ml import MachineLearning
 
 
 def main():
-    cfg = confuse.LazyConfig('pullrequestcommentanalyzer', __name__)
+    cfg = confuse.LazyConfig('ccc4prc', __name__)
     # Add overrides on top of config.yaml for the workspace.
     cfg.set_file('./config.workspace.yaml')
 
@@ -29,10 +26,8 @@ def main():
         format='%(asctime)s, %(levelname)s, %(name)s, %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S %z',
         handlers=[logging.StreamHandler(), logging.FileHandler(filename=cfg['log_file'].as_filename(), mode='a')])
-    logger = logging.getLogger('pullrequestcommentanalyzer')
+    logger = logging.getLogger('ccc4prc')
     logger.info('Program started.')
-
-    error_alert_sound_file = cfg['error_alert_sound_file'].as_filename()
 
     input_result = input(
         'Process BigQuery Pull Request Comment CSV file? (y/n): ')
@@ -44,40 +39,11 @@ def main():
             cfg['dialogue_act_classification']['train_classifier'].get(bool),
             cfg['dialogue_act_classification']['test_set_percentage'].as_number())
 
-        github_helper = GitHubPullRequestHelper(
-            cfg['github']['personal_access_tokens'].get(list),
-            cfg['github']['requests_cache_file'].as_filename())
-
         pull_request_comments_csv_file = Path(
             cfg['bigquery']['pull_request_comments_results_csv_file'].as_filename())
 
-        try:
-            with CommentLoader(
-                    cfg['ghtorrent_mongodb']['ssh_tunnel_host'].get(),
-                    cfg['ghtorrent_mongodb']['ssh_tunnel_port'].get(int),
-                    cfg['ghtorrent_mongodb']['ssh_username'].get(),
-                    cfg['ghtorrent_mongodb']['ssh_private_key'].get(),
-                    cfg['ghtorrent_mongodb']['ssh_private_key_password'].get(),
-                    cfg['ghtorrent_mongodb']['host'].get(),
-                    cfg['ghtorrent_mongodb']['port'].get(int),
-                    cfg['ghtorrent_mongodb']['username'].get(),
-                    cfg['ghtorrent_mongodb']['password'].get(),
-                    cfg['ghtorrent_mongodb']['database'].get(),
-                    error_alert_sound_file) as comment_loader:
-                file_processor = BigQueryCsvFileProcessor(comment_loader,
-                                                          dac_classifier,
-                                                          github_helper)
-                pull_request_comments_csv_file_processed, _ = file_processor.process(
-                    pull_request_comments_csv_file)
-                file_processor.reprocess(
-                    pull_request_comments_csv_file_processed)
-        except Exception:
-            logger.exception(f'Failed to process the BigQuery .csv file.')
-            # Continuously make alert sound until manual interruption.
-            while True:
-                for _ in range(3):
-                    playsound(error_alert_sound_file, True)
-                time.sleep(30)
+        # TODO: Fix file path.
+        pull_request_comments_csv_file_processed = None
 
         manual_labelling_file_generator = FileGenerator()
         manual_labelling_file_generator.generate(
@@ -116,12 +82,8 @@ def main():
                                 header=True, index=False, mode='w')      
 
         unlabeled_csv_file = pandas.read_csv(cfg['machine_learning']['unlabeled_csv_file'].as_filename())
-        
-        # Filter out rows already labeled in training and test datasets.
-        comment_ids = pandas.concat([training_dataset['comment_id'], test_dataset['comment_id']])
-        unlabeled_csv_file = unlabeled_csv_file[~unlabeled_csv_file.comment_id.isin(comment_ids)]
 
-        ml.active_learn(training_dataset, test_dataset, unlabeled_csv_file)
+        ml.active_learn(training_dataset, training_dataset_file, test_dataset, unlabeled_csv_file)
 
         # new_training_instances.to_csv(
         #     training_dataset_file,

@@ -1,9 +1,11 @@
 import logging
 import nltk
 import numpy
+import pandas
 
 from estimator import DataSubsetSelector, PosTagEstimator, SingleFeatureOneHotEncoder
 from pandas import DataFrame
+from pathlib import Path
 from sklearn import metrics
 from sklearn.compose import ColumnTransformer
 # from sklearn.ensemble import RandomForestRegressor
@@ -19,20 +21,20 @@ from sklearn.svm import SVC
 class MachineLearning:
     """A machine learning class for supervised learning to create a model."""
 
-    FEATURES = ['body', 'dialogue_act_classification_ml',
-                'comment_is_by_author']
+    FEATURES = ['body', 'dialogue_act_classification_ml', 'comment_is_by_author']
     LABEL = 'code_comprehension_related'
 
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
 
-    def active_learn(self, training_dataset: DataFrame, test_dataset: DataFrame, unlabeled_dataset: DataFrame):
+    def active_learn(self, training_dataset: DataFrame, training_dataset_file: Path, test_dataset: DataFrame, unlabeled_dataset: DataFrame):
         """Using Scikit-learn, supervised training and active learning to create a machine learning model.
 
         Args:
-            training_dataset (DataFrame): Training dataset, including new instances from active learning.
+            training_dataset (DataFrame): Training dataset, with existing labeled instances.
+            training_dataset_file (Path): Training dataset file path, for the new labeled instances from active learning to append to.
             test_dataset (DataFrame): Separate test dataset to measure the performance of the machine learning model.
-            unlabeled_dataset (DataFrame): Pool of unlabeled data for pool-based sampling to select new instances from.
+            unlabeled_dataset (DataFrame): Pool of unlabeled data for pool-based sampling to select new instances from. This may contain instances from training or test datasets, which would be filtered out when querying new instances to send to Oracle to label.
         Returns:
             model: a trained machine learning model.
         """
@@ -44,22 +46,68 @@ class MachineLearning:
         y_train = training_dataset[self.LABEL]
         y_true = test_dataset[self.LABEL]
 
-        classifier, report = self.__train_model(
-            classifier, X_train, X_test, y_train, y_true)
+        classifier, report, report_dict = self.__train_model(classifier, X_train, X_test, y_train, y_true)
+        self.logger.info(f'{report}')
 
         # Scenario: Pool-based Sampling.
         # Query Strategy: Least Confidence.
+
+        # Filter out rows already labeled in training and test datasets.
+        comment_ids = pandas.concat([training_dataset['comment_id'], test_dataset['comment_id']])
+        unlabeled_dataset = unlabeled_dataset[~unlabeled_dataset.comment_id.isin(comment_ids)]
+
         pool = unlabeled_dataset[self.FEATURES]
         pool_pred_prob = classifier.predict_proba(pool)
-        lc_indices = self.__query_least_confident(pool_pred_prob, batch_size=5)
+        batch_size = 5
+        lc_indices = self.__query_least_confident(pool_pred_prob, batch_size)
         lc_instances = unlabeled_dataset.iloc[lc_indices]
         lc_instances_prob = [pool_pred_prob[i] for i in lc_indices]
-        lc_instances.to_csv('C:\\Users\\echiang\\Downloads\\lc_instances.csv')
 
         # Send to Oracle to Label.
-        # Add to Training Set, with the label (and maybe other analysis columns as well)
-        
+        self.logger.info('......Active Learning Starts......')
+        i = 0
+        for idx, row in lc_instances.iterrows():
+            i += 1
+            self.logger.info(
+                f'Instance ({i}/{batch_size}), comment_id: {row["comment_id"]}, label({classifier.classes_[0]}): {lc_instances_prob[i-1][0]:.2f}, label({classifier.classes_[1]}): {lc_instances_prob[i-1][1]:.2f}')
 
+            oracle_input = self.__label_instance_by_oracle(
+                row['body'], row['dialogue_act_classification_ml'], row['comment_is_by_author'])
+            lc_instances.at[idx, 'code_comprehension_related'] = oracle_input['code_comprehension_related']
+            lc_instances.at[idx, 'problem_encountered'] = oracle_input['problem_encountered']
+            lc_instances.at[idx, 'topic_keywords'] = oracle_input['topic_keywords']
+            print()
+
+            # unlabeled_dataset has less columns than training_dataset, so use pandas.concat.
+            training_dataset = pandas.concat([training_dataset, lc_instances.loc[[idx]]], ignore_index=True)
+
+            # Append the last row (the newly labeled instance) to file.
+            training_dataset.iloc[[-1]].to_csv(training_dataset_file, header=False, index=False, mode='a')
+
+        # Retrain the model with newly labeled dataset.
+        X_train = training_dataset[self.FEATURES]
+        y_train = training_dataset[self.LABEL]
+        classifier, _, new_report_dict = self.__train_model(classifier, X_train, X_test, y_train, y_true)
+
+        # Show the difference.
+        self.logger.info(f'One iteration of Active Learning finished with {batch_size} instances.')
+        self.logger.info(
+            f'Label "No"  - Precision - Before: {report_dict["No"]["precision"]:.8f}, After: {new_report_dict["No"]["precision"]:.8f}, Diff: {(new_report_dict["No"]["precision"] - report_dict["No"]["precision"]):.8f}')
+        self.logger.info(
+            f'Label "No"  - Recall    - Before: {report_dict["No"]["recall"]:.8f}, After: {new_report_dict["No"]["recall"]:.8f}, Diff: {(new_report_dict["No"]["recall"] - report_dict["No"]["recall"]):.8f}')
+        self.logger.info(
+            f'Label "Yes" - Precision - Before: {report_dict["Yes"]["precision"]:.8f}, After: {new_report_dict["Yes"]["precision"]:.8f}, Diff: {(new_report_dict["Yes"]["precision"] - report_dict["Yes"]["precision"]):.8f}')
+        self.logger.info(
+            f'Label "Yes" - Recall    - Before: {report_dict["Yes"]["recall"]:.8f}, After: {new_report_dict["Yes"]["recall"]:.8f}, Diff: {(new_report_dict["Yes"]["recall"] - report_dict["Yes"]["recall"]):.8f}')
+        self.logger.info(
+            f'Accuracy                - Before: {report_dict["accuracy"]:.8f}, After: {new_report_dict["accuracy"]:.8f}, Diff: {(new_report_dict["accuracy"] - report_dict["accuracy"]):.8f}')
+
+        # Ask the Oracle whether to continue with Active Learning.
+        while True:
+            choice = input('Continue Active Learning? (y/n) ').lower()
+            if choice == 'y' or choice == 'n':
+                is_continue = choice == 'y'
+                break
 
         # self.logger.info('First iteration of Active Learning')
         # X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(
@@ -71,20 +119,17 @@ class MachineLearning:
         # X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(
         #     classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
 
-        return classifier, report
+        return classifier
 
     def __train_model(self, classifier, X_train: DataFrame, X_test: DataFrame, y_train: DataFrame, y_true: DataFrame):
         classifier.fit(X_train, y_train)
         y_pred = classifier.predict(X_test)
 
         # Model accuracy, how often is the classifier correct?
-        self.logger.info(
-            f'{metrics.classification_report(y_true, y_pred, digits=8)}')
+        report = metrics.classification_report(y_true, y_pred, digits=8)
+        report_dict = metrics.classification_report(y_true, y_pred, output_dict=True)
 
-        report = metrics.classification_report(
-            y_true, y_pred, digits=8, output_dict=True)
-
-        return classifier, report
+        return classifier, report, report_dict
 
     def __get_classifier(self):
         """ Construct and return a machine learning classifier.
@@ -181,14 +226,14 @@ class MachineLearning:
     #     return X_train, y_train, feature_sample_pool, label_sample_pool
 
     # def __get_new_instances(self, predict_proba_result: [], features: DataFrame, labels: DataFrame):
-    #     """Use scenario "Pool-based Sampling" to select instances with the Least Confidence, 
+    #     """Use scenario "Pool-based Sampling" to select instances with the Least Confidence,
     #     to add to the training dataset.
 
     #     Args:
     #         predict_proba_result (array): Predicted values from predict_proba().
     #         features (DataFrame): Features dataset sample pool.
     #         labels (DataFrame): Labels dataset sample pool.
-    #     Return: 
+    #     Return:
     #         new_features_dataset (DataFrame): New instances to add to Active Learning training dataset.
     #         new_labels_dataset (DataFrame): New instances to add to Active Learning training dataset.
     #         features (DataFrame): Updated features dataset with the selected instances removed.
@@ -218,6 +263,63 @@ class MachineLearning:
         diff = diff.flatten()
         lc_indices = numpy.argpartition(diff, batch_size)
         return lc_indices[:batch_size]
+
+    def __label_instance_by_oracle(self, body: str, dialogue_act_classification_ml: str, comment_is_by_author: bool):
+        """Send the query instance to the oracle (i.e. human annotator) to label.
+
+        Args:
+            body (str): Review comment body.
+            dialogue_act_classification_ml (str): Dialogue act classification derived from Machine Learning.
+            comment_is_by_author (bool): Is the comment by the pull request author?
+        Returns:
+            dict: A dictionary comprising the annotated result from the oracle, including code_comprehension_related label, topic_keywords, and problem_encountered.
+        """
+        result = dict()
+
+        print(f"body: {body}")
+        print(f"dialogue_act_classification_ml: {dialogue_act_classification_ml}")
+        print(f"comment_is_by_author: {comment_is_by_author}")
+
+        while True:
+            oracle_input = input('Code Comprehension Related? (y/n) ').lower()
+            if oracle_input == 'y' or oracle_input == 'n':
+                result['code_comprehension_related'] = 'Yes' if oracle_input == 'y' or oracle_input == 'yes' else 'No'
+                break
+
+        oracle_input = input('Topic keywords (semicolon separated)? ')
+        result['topic_keywords'] = oracle_input
+
+        result['problem_encountered'] = ''
+        if result['code_comprehension_related'] == 'Yes':
+            problem_encountered_type_1 = "What is the program supposed to do"
+            problem_encountered_type_2 = "What was the developer's intention when writing this code"
+            problem_encountered_type_3 = "Why was this code implemented this way"
+            problem_encountered_type_4 = "Who has experience with this code"
+
+            print('Type of problem encountered?')
+            print(f'1. {problem_encountered_type_1}?')
+            print(f'2. {problem_encountered_type_2}?')
+            print(f'3. {problem_encountered_type_3}?')
+            print(f'4. {problem_encountered_type_4}?')
+
+            while True:
+                oracle_input = input('Choice (1-4): ')
+                if oracle_input.isnumeric():
+                    oracle_input_int = int(oracle_input)
+                    if oracle_input_int == 1:
+                        result['problem_encountered'] = problem_encountered_type_1
+                        break
+                    elif oracle_input_int == 2:
+                        result['problem_encountered'] = problem_encountered_type_2
+                        break
+                    elif oracle_input_int == 3:
+                        result['problem_encountered'] = problem_encountered_type_3
+                        break
+                    elif oracle_input_int == 4:
+                        result['problem_encountered'] = problem_encountered_type_4
+                        break
+
+        return result
 
     def train_test_split(self, data: DataFrame):
         """Split data into training and test datasets.

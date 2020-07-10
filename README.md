@@ -1,3 +1,6 @@
+# Code Comprehension Classifier for Pull Request Comments (CCC4PRC)
+A machine learning classifier that identifies code comprehension related comments in a pull request.
+
 # Set up
 
 ## Set up [Git Large File Storage](https://git-lfs.github.com/)
@@ -20,16 +23,6 @@ python -m venv .venv
 ```
 
 ## Install dependent packages
-On macOS:
-```bash
-python3 -m pip install -r requirements.txt
-python3 -m pip install PyObjC
-```
-On Linux:
-```bash
-python3 -m pip install -r requirements.txt
-```
-On Windows:
 ```bash
 pip install -r requirements.txt
 ```
@@ -48,15 +41,15 @@ By default, Visual Studio Code will use [.env](.env) automatically
 when starting the Python environment, so add the following to the end of [.env](.env) (create the file if it does not exist):
 ```bash
 # Confuse Config Search Directory
-PULLREQUESTCOMMENTANALYZERDIR="./"
+CCC4PRCDIR="./"
 ```
 Alternatively, if not using Visual Studio Code, please see the instructions below.
 ### On macOS and Linux
 1. Add the following to the end of venv [activate script](.venv/bin/activate):
 ```bash
 # Confuse Config Search Directory
-PULLREQUESTCOMMENTANALYZERDIR="./"
-export PULLREQUESTCOMMENTANALYZERDIR
+CCC4PRCDIR="./"
+export CCC4PRCDIR
 ```
 2. Then reactivate the venv to take effect:
 ```bash
@@ -66,7 +59,7 @@ source .venv/bin/activate
 1. Add the following to the end of [Activate.ps1](.venv\Scripts\Activate.ps1):
 ```powershell
 # Confuse Config Search Directory
-$env:PULLREQUESTCOMMENTANALYZERDIR="./"
+$env:CCC4PRCDIR="./"
 ```
 2. Then reactivate the venv to take effect:
 ```bash
