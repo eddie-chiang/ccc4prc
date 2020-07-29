@@ -58,7 +58,7 @@ class MachineLearning:
 
         pool = unlabeled_dataset[self.FEATURES]
         pool_pred_prob = classifier.predict_proba(pool)
-        batch_size = 5
+        batch_size = 30
         lc_indices = self.__query_least_confident(pool_pred_prob, batch_size)
         lc_instances = unlabeled_dataset.iloc[lc_indices]
         lc_instances_prob = [pool_pred_prob[i] for i in lc_indices]
