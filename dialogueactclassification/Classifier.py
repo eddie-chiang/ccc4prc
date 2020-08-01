@@ -1,8 +1,12 @@
 import collections
 import logging
-import nltk
 import pickle
+from pathlib import Path
+
+import nltk
+import pandas
 from nltk.metrics.scores import precision, recall
+from tqdm import tqdm
 
 
 class Classifier:
@@ -26,8 +30,7 @@ class Classifier:
             _, _, self.test_set = self.__get_featuresets(test_set_percentage)
         else:
             self.logger.info('Training dialogue act classifier.')
-            self.dialogue_act_classifier, self.test_set = self.__train(
-                test_set_percentage)
+            self.dialogue_act_classifier, self.test_set = self.__train(test_set_percentage)
 
             with open(trained_classifer_file, mode='wb') as f:
                 pickle.dump(self.dialogue_act_classifier, f)
@@ -44,6 +47,32 @@ class Classifier:
         """
         unlabeled_data_features = self.__dialogue_act_features(dialgoue)
         return self.dialogue_act_classifier.classify(unlabeled_data_features)
+
+    def classify_prc_csv_file(self, prc_csv_file: Path):
+        """Classify the given Pull Request Comments .csv file.
+
+        Args:
+            prc_csv_file (Path): A Path object that points to the Pull Request Comments .csv file.
+
+        Returns:
+            Path: The file path of the output file.
+        """
+        classified_csv_file = Path(prc_csv_file.absolute().as_posix().replace('.csv', '_classified.csv'))
+
+        if classified_csv_file.exists():
+            self.logger.info(f'Output file already exists, stop further processing: {classified_csv_file}')
+            return classified_csv_file
+
+        data_frame = pandas.read_csv(prc_csv_file)
+        tqdm.pandas(desc='Classifying Dialogue Act')
+        data_frame['dialogue_act_classification_ml'] = data_frame.progress_apply(
+            lambda row: self.classify(row['body']),
+            axis='columns'
+        )
+        data_frame.to_csv(classified_csv_file, index=False, header=True, mode='w')
+        self.logger.info(f'Dialogue Act Classification completed, output file: {classified_csv_file}')
+        
+        return classified_csv_file
 
     def __dialogue_act_features(self, dialogue: str):
         features = {}
@@ -89,10 +118,8 @@ class Classifier:
             testsets[observed].add(i)
 
         for class_label in refsets:
-            precisions[class_label] = precision(
-                refsets[class_label], testsets[class_label])
-            recalls[class_label] = recall(
-                refsets[class_label], testsets[class_label])
+            precisions[class_label] = precision(refsets[class_label], testsets[class_label])
+            recalls[class_label] = recall(refsets[class_label], testsets[class_label])
 
         return precisions, recalls
 

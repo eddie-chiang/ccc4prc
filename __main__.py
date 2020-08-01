@@ -1,14 +1,8 @@
-# import collections
-# import csv
-# import gensim
 import logging
-# from nltk.stem.porter import *
 from pathlib import Path
 
 import confuse
 import pandas
-# from gensim.utils import simple_preprocess
-from nltk.stem import SnowballStemmer, WordNetLemmatizer
 
 from dialogueactclassification import Classifier
 from manuallabeling import FileGenerator
@@ -33,21 +27,18 @@ def main():
         'Process BigQuery Pull Request Comment CSV file? (y/n): ')
 
     if is_yes(input_result):
+        csv_file = Path(cfg['bigquery']['pull_request_comments_results_csv_file'].as_filename())
+
         dac_classifier = Classifier(
-            Path(cfg['dialogue_act_classification']
-                 ['trained_classifier_file'].as_filename()),
+            Path(cfg['dialogue_act_classification']['trained_classifier_file'].as_filename()),
             cfg['dialogue_act_classification']['retrain_classifier'].get(bool),
             cfg['dialogue_act_classification']['test_set_percentage'].as_number())
 
-        pull_request_comments_csv_file = Path(
-            cfg['bigquery']['pull_request_comments_results_csv_file'].as_filename())
+        classified_csv_file = dac_classifier.classify_prc_csv_file(csv_file)
 
-        # TODO: Fix file path.
-        pull_request_comments_csv_file_processed = None
-
+        # TODO: Create ghtorrent_bigquery_result_20190503_1403_cleaned_classified.csv
         manual_labelling_file_generator = FileGenerator()
-        manual_labelling_file_generator.generate(
-            pull_request_comments_csv_file_processed)
+        manual_labelling_file_generator.generate(classified_csv_file)
 
     input_result = input(
         'Perform Machine Learning? (y/n): ')
@@ -79,7 +70,7 @@ def main():
             training_dataset.to_csv(
                 training_dataset_file, header=True, index=False, mode='w')
             test_dataset.to_csv(test_dataset_file,
-                                header=True, index=False, mode='w')      
+                                header=True, index=False, mode='w')
 
         unlabeled_csv_file = pandas.read_csv(cfg['machine_learning']['unlabeled_csv_file'].as_filename())
 
