@@ -24,7 +24,7 @@ def main():
     logger.info('Program started.')
 
     input_result = input(
-        'Process BigQuery Pull Request Comment CSV file? (y/n): ')
+        'Generate Manual Labelling File? (y/n): ')
 
     if is_yes(input_result):
         csv_file = Path(cfg['bigquery']['pull_request_comments_results_csv_file'].as_filename())
@@ -35,8 +35,6 @@ def main():
             cfg['dialogue_act_classification']['test_set_percentage'].as_number())
 
         classified_csv_file = dac_classifier.classify_prc_csv_file(csv_file)
-
-        # TODO: Create ghtorrent_bigquery_result_20190503_1403_cleaned_classified.csv
         manual_labelling_file_generator = FileGenerator()
         manual_labelling_file_generator.generate(classified_csv_file)
 
