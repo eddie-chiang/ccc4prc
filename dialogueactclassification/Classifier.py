@@ -10,16 +10,16 @@ class Classifier:
 
     Args:
         trained_classifier_file (Path): A Path object that points to the trained classifier .pickle file.
-        train_classifier (bool): If the trained classifier .pickle file already exists, whether to retrain the classifier.
+        retrain_classifier (bool): If the trained classifier .pickle file already exists, whether to retrain the classifier.
             If the .pickle file does not exist, then a new dialogue act classifier will be trained, and save to trained_classifier_file.
         test_set_percentage (int): The percentage of labeled NPS Chat corpus to be used as the test set (remainder will be used as the train set).
     """
 
-    def __init__(self, trained_classifer_file, train_classifier: bool, test_set_percentage: int):
+    def __init__(self, trained_classifer_file, retrain_classifier: bool, test_set_percentage: int):
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.test_set = None
-        if trained_classifer_file.is_file() and train_classifier == False:
+        if trained_classifer_file.is_file() and retrain_classifier == False:
             with open(trained_classifer_file, mode='rb') as f:
                 self.dialogue_act_classifier = pickle.load(f)
                 self.logger.info('Loaded trained dialogue act classifier.')

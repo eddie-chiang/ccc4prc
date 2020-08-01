@@ -36,7 +36,7 @@ def main():
         dac_classifier = Classifier(
             Path(cfg['dialogue_act_classification']
                  ['trained_classifier_file'].as_filename()),
-            cfg['dialogue_act_classification']['train_classifier'].get(bool),
+            cfg['dialogue_act_classification']['retrain_classifier'].get(bool),
             cfg['dialogue_act_classification']['test_set_percentage'].as_number())
 
         pull_request_comments_csv_file = Path(
