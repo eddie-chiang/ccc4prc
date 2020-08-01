@@ -71,6 +71,7 @@ class Classifier:
         )
         data_frame.to_csv(classified_csv_file, index=False, header=True, mode='w')
         self.logger.info(f'Dialogue Act Classification completed, output file: {classified_csv_file}')
+        self.__classification_report()
         
         return classified_csv_file
 
@@ -88,6 +89,15 @@ class Classifier:
 
         # Train the dialogue act classifier.
         return nltk.NaiveBayesClassifier.train(train_set), test_set
+
+    def __classification_report(self):
+        """Prints classifier accuracy, precisions and recalls.
+        """
+        self.logger.info(f'Accuracy: {self.get_accuracy()}')
+
+        precisions, recalls = self.get_precision_and_recall()
+        for label in precisions.keys():
+            self.logger.info(f'{label} - precision: {precisions[label]}, recall: {recalls[label]}')
 
     def get_accuracy(self):
         """Returns the Accuracy of the Dialogue Act Classifier.
