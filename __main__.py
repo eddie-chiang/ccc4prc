@@ -23,9 +23,7 @@ def main():
     logger = logging.getLogger('ccc4prc')
     logger.info('Program started.')
 
-    input_result = input(
-        'Generate Manual Labelling File? (y/n): ')
-
+    input_result = input('Generate Manual Labelling File? (y/n): ')
     if is_yes(input_result):
         csv_file = Path(cfg['bigquery']['pull_request_comments_results_csv_file'].as_filename())
 
@@ -38,9 +36,7 @@ def main():
         manual_labelling_file_generator = FileGenerator()
         manual_labelling_file_generator.generate(classified_csv_file)
 
-    input_result = input(
-        'Perform Machine Learning? (y/n): ')
-
+    input_result = input('Perform Machine Learning? (y/n): ')
     if is_yes(input_result):
         ml = MachineLearning()
 
