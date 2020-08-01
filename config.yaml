@@ -1,11 +1,11 @@
 log_file: ./data/ccc4prc.log
 
 bigquery:
-  pull_request_comments_results_csv_file: ./data/sample/ghtorrent_bigquery_result.csv
+  pull_request_comments_results_csv_file: ./data/sample/ghtorrent_bigquery_result_20190503_1403_cleaned.csv
 
 machine_learning:
-  labeled_seed_excel_file:
-  unlabeled_csv_file: 
+  labeled_seed_excel_file: ../master-of-engineering/Assets/BigQuery/results_20190503_1403_cleaned_classified_manual_labeling.xlsx
+  unlabeled_csv_file: ./data/sample/ghtorrent_bigquery_result_20190503_1403_cleaned_classified.csv
 
 dialogue_act_classification:
   retrain_classifier: False # Whether to train/retrain Dialogue Act Classifier.
