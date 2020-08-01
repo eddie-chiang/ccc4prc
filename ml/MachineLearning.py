@@ -86,6 +86,7 @@ class MachineLearning:
                 training_dataset = pandas.concat([training_dataset, lc_instances.loc[[idx]]], ignore_index=True)
 
                 # Append the last row (the newly labeled instance) to file.
+                # Use -1, as pandas.to_csv() appends a newline at the EOF.
                 training_dataset.iloc[[-1]].to_csv(training_dataset_file, header=False, index=False, mode='a')
 
             # Retrain the model with newly labeled dataset.
