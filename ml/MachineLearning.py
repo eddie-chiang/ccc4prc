@@ -1,4 +1,5 @@
 import logging
+from array import array
 from pathlib import Path
 
 import numpy
@@ -92,7 +93,7 @@ class MachineLearning:
             y_train = training_dataset[self.LABEL]
             classifier, _, new_report_dict = self.__train_model(classifier, X_train, X_test, y_train, y_true)
 
-            # Report the classifier performance, and ask the user to determine whether the stopping criteria is met.           
+            # Report the classifier performance, and ask the user to determine whether the stopping criteria is met.
             if self.__test_stopping_criteria(iter_ctr, batch_size, new_report_dict, report_dict):
                 return classifier
 
@@ -166,65 +167,7 @@ class MachineLearning:
 
         return classifier
 
-    # def __iterate(self, classifier, X_train: DataFrame, X_test: DataFrame, y_train: DataFrame, y_test: DataFrame, feature_sample_pool: DataFrame, label_sample_pool: DataFrame):
-    #     """Perform an iteration of Active learning.
-    #     Scenario: Pool-based Sampling.
-    #     Query Strategy: Least Confidence.
-
-    #     Args:
-    #         classifier:
-    #         X_train:
-    #         X_test:
-    #         y_train:
-    #         y_test:
-    #         feature_sample_pool:
-    #         label_sample_pool:
-    #     Return:
-
-    #     """
-    #     sample_pool_pred_prob = classifier.predict_proba(feature_sample_pool)
-    #     new_instances_X_train, new_instances_y_train, feature_sample_pool, label_sample_pool = self.__get_new_instances(
-    #         sample_pool_pred_prob, feature_sample_pool, label_sample_pool)
-
-    #     X_train = X_train.append(new_instances_X_train)
-    #     y_train = y_train.append(new_instances_y_train)
-
-    #     # Train the model using the training sets.
-    #     classifier.fit(X_train, y_train)
-
-    #     y_pred = classifier.predict(X_test)
-
-    #     # Model accuracy, how often is the classifier correct?
-    #     self.logger.info(
-    #         f'{metrics.classification_report(y_test, y_pred, digits=8)}')
-
-    #     return X_train, y_train, feature_sample_pool, label_sample_pool
-
-    # def __get_new_instances(self, predict_proba_result: [], features: DataFrame, labels: DataFrame):
-    #     """Use scenario "Pool-based Sampling" to select instances with the Least Confidence,
-    #     to add to the training dataset.
-
-    #     Args:
-    #         predict_proba_result (array): Predicted values from predict_proba().
-    #         features (DataFrame): Features dataset sample pool.
-    #         labels (DataFrame): Labels dataset sample pool.
-    #     Return:
-    #         new_features_dataset (DataFrame): New instances to add to Active Learning training dataset.
-    #         new_labels_dataset (DataFrame): New instances to add to Active Learning training dataset.
-    #         features (DataFrame): Updated features dataset with the selected instances removed.
-    #         labels (DataFrame): Updated labels dataset with the selected instances removed.
-    #     """
-    #     lc_indices = self.__query_least_confident(
-    #         predict_proba_result, batch_size=5)
-    #     new_features_dataset = features.iloc[lc_indices]
-    #     new_labels_dataset = labels.iloc[lc_indices]
-
-    #     features = features.drop(new_features_dataset.index.values)
-    #     labels = labels.drop(new_labels_dataset.index.values)
-
-    #     return new_features_dataset, new_labels_dataset, features, labels
-
-    def __query_least_confident(self, predict_proba_result: [], batch_size: int):
+    def __query_least_confident(self, predict_proba_result: array, batch_size: int):
         """Find the instances with the Least Confidence from the result of predict_proba().
 
         Args:
