@@ -40,14 +40,10 @@ def main():
     if is_yes(input_result):
         ml = MachineLearning()
 
-        labeled_seed_excel_file = cfg['machine_learning']['labeled_seed_excel_file'].as_filename(
-        )
+        labeled_seed_excel_file = cfg['machine_learning']['labeled_seed_excel_file'].as_filename()
         dataset_dir = Path(labeled_seed_excel_file).parent
         training_dataset_file = dataset_dir / ('training_dataset.csv')
         test_dataset_file = dataset_dir / ('test_dataset.csv')
-
-        sample_dataset = pandas.read_excel(
-            io=labeled_seed_excel_file, sheet_name='Sample Dataset')
 
         training_dataset = pandas.DataFrame()
         if training_dataset_file.exists():
@@ -58,17 +54,18 @@ def main():
             test_dataset = pandas.read_csv(test_dataset_file)
 
         if not training_dataset_file.exists() or not test_dataset_file.exists():
-            training_dataset, test_dataset = ml.train_test_split(
-                sample_dataset)
+            sample_dataset = pandas.read_excel(io=labeled_seed_excel_file, sheet_name='Sample Dataset')
+            training_dataset, test_dataset = ml.train_test_split(sample_dataset)
 
-            training_dataset.to_csv(
-                training_dataset_file, header=True, index=False, mode='w')
-            test_dataset.to_csv(test_dataset_file,
-                                header=True, index=False, mode='w')
+            addl_test_dataset = pandas.read_excel(io=labeled_seed_excel_file, sheet_name='Additional Test Dataset')          
+            test_dataset = pandas.concat([test_dataset, addl_test_dataset], ignore_index=True)
+
+            training_dataset.to_csv(training_dataset_file, header=True, index=False, mode='w')
+            test_dataset.to_csv(test_dataset_file, header=True, index=False, mode='w')
 
         unlabeled_csv_file = pandas.read_csv(cfg['machine_learning']['unlabeled_csv_file'].as_filename())
 
-        ml.active_learn(training_dataset, training_dataset_file, test_dataset, unlabeled_csv_file)        
+        ml.active_learn(training_dataset, training_dataset_file, test_dataset, unlabeled_csv_file)
 
     # # Use the model to classify unlabeled data (BigQuery results from the CSV file).
     # comments = collections.defaultdict(set)
