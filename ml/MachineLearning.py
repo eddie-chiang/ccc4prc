@@ -1,19 +1,14 @@
 import logging
-import nltk
+from pathlib import Path
+
 import numpy
 import pandas
-
-from estimator import DataSubsetSelector, PosTagEstimator, SingleFeatureOneHotEncoder
 from pandas import DataFrame
-from pathlib import Path
 from sklearn import metrics
 from sklearn.compose import ColumnTransformer
-# from sklearn.ensemble import RandomForestRegressor
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import GridSearchCV, train_test_split
-# from sklearn.naive_bayes import GaussianNB
-# from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import FeatureUnion, Pipeline
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.svm import SVC
 
@@ -52,74 +47,54 @@ class MachineLearning:
         # Scenario: Pool-based Sampling.
         # Query Strategy: Least Confidence.
 
-        # Filter out rows already labeled in training and test datasets.
-        comment_ids = pandas.concat([training_dataset['comment_id'], test_dataset['comment_id']])
-        unlabeled_dataset = unlabeled_dataset[~unlabeled_dataset.comment_id.isin(comment_ids)]
-
-        pool = unlabeled_dataset[self.FEATURES]
-        pool_pred_prob = classifier.predict_proba(pool)
         batch_size = 30
-        lc_indices = self.__query_least_confident(pool_pred_prob, batch_size)
-        lc_instances = unlabeled_dataset.iloc[lc_indices]
-        lc_instances_prob = [pool_pred_prob[i] for i in lc_indices]
+        iter_ctr = 0
 
-        # Send to Oracle to Label.
         self.logger.info('......Active Learning Starts......')
-        i = 0
-        for idx, row in lc_instances.iterrows():
-            i += 1
-            self.logger.info(
-                f'Instance ({i}/{batch_size}), comment_id: {row["comment_id"]}, label({classifier.classes_[0]}): {lc_instances_prob[i-1][0]:.2f}, label({classifier.classes_[1]}): {lc_instances_prob[i-1][1]:.2f}')
 
-            oracle_input = self.__label_instance_by_oracle(
-                row['body'], row['dialogue_act_classification_ml'], row['comment_is_by_author'])
-            lc_instances.at[idx, 'code_comprehension_related'] = oracle_input['code_comprehension_related']
-            lc_instances.at[idx, 'problem_encountered'] = oracle_input['problem_encountered']
-            lc_instances.at[idx, 'topic_keywords'] = oracle_input['topic_keywords']
-            print()
-
-            # unlabeled_dataset has less columns than training_dataset, so use pandas.concat.
-            training_dataset = pandas.concat([training_dataset, lc_instances.loc[[idx]]], ignore_index=True)
-
-            # Append the last row (the newly labeled instance) to file.
-            training_dataset.iloc[[-1]].to_csv(training_dataset_file, header=False, index=False, mode='a')
-
-        # Retrain the model with newly labeled dataset.
-        X_train = training_dataset[self.FEATURES]
-        y_train = training_dataset[self.LABEL]
-        classifier, _, new_report_dict = self.__train_model(classifier, X_train, X_test, y_train, y_true)
-
-        # Show the difference.
-        self.logger.info(f'One iteration of Active Learning finished with {batch_size} instances.')
-        self.logger.info(
-            f'Label "No"  - Precision - Before: {report_dict["No"]["precision"]:.8f}, After: {new_report_dict["No"]["precision"]:.8f}, Diff: {(new_report_dict["No"]["precision"] - report_dict["No"]["precision"]):.8f}')
-        self.logger.info(
-            f'Label "No"  - Recall    - Before: {report_dict["No"]["recall"]:.8f}, After: {new_report_dict["No"]["recall"]:.8f}, Diff: {(new_report_dict["No"]["recall"] - report_dict["No"]["recall"]):.8f}')
-        self.logger.info(
-            f'Label "Yes" - Precision - Before: {report_dict["Yes"]["precision"]:.8f}, After: {new_report_dict["Yes"]["precision"]:.8f}, Diff: {(new_report_dict["Yes"]["precision"] - report_dict["Yes"]["precision"]):.8f}')
-        self.logger.info(
-            f'Label "Yes" - Recall    - Before: {report_dict["Yes"]["recall"]:.8f}, After: {new_report_dict["Yes"]["recall"]:.8f}, Diff: {(new_report_dict["Yes"]["recall"] - report_dict["Yes"]["recall"]):.8f}')
-        self.logger.info(
-            f'Accuracy                - Before: {report_dict["accuracy"]:.8f}, After: {new_report_dict["accuracy"]:.8f}, Diff: {(new_report_dict["accuracy"] - report_dict["accuracy"]):.8f}')
-
-        # Ask the Oracle whether to continue with Active Learning.
         while True:
-            choice = input('Continue Active Learning? (y/n) ').lower()
-            if choice == 'y' or choice == 'n':
-                is_continue = choice == 'y'
-                break
+            iter_ctr += 1
+            self.logger.info(f'Active Learning Iteration "{iter_ctr}" begins...')
 
-        # self.logger.info('First iteration of Active Learning')
-        # X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(
-        #     classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
-        # self.logger.info('Second iteration of Active Learning')
-        # X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(
-        #     classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
-        # self.logger.info('Third iteration of Active Learning')
-        # X_train, y_train, feature_sample_pool, label_sample_pool = self.__iterate(
-        #     classifier, X_train, X_test, y_train, y_test, feature_sample_pool, label_sample_pool)
+            # Filter out rows already labeled in training and test datasets.
+            comment_ids = pandas.concat([training_dataset['comment_id'], test_dataset['comment_id']])
+            unlabeled_dataset = unlabeled_dataset[~unlabeled_dataset.comment_id.isin(comment_ids)]
 
-        return classifier
+            pool = unlabeled_dataset[self.FEATURES]
+            pool_pred_prob = classifier.predict_proba(pool)
+
+            lc_indices = self.__query_least_confident(pool_pred_prob, batch_size)
+            lc_instances = unlabeled_dataset.iloc[lc_indices]
+            lc_instances_prob = [pool_pred_prob[i] for i in lc_indices]
+
+            # Send to Oracle to Label.
+            i = 0
+            for idx, row in lc_instances.iterrows():
+                i += 1
+                self.logger.info(
+                    f'Instance ({i}/{batch_size}), comment_id: {row["comment_id"]}, label({classifier.classes_[0]}): {lc_instances_prob[i-1][0]:.2f}, label({classifier.classes_[1]}): {lc_instances_prob[i-1][1]:.2f}')
+
+                oracle_input = self.__label_instance_by_oracle(
+                    row['body'], row['dialogue_act_classification_ml'], row['comment_is_by_author'])
+                lc_instances.at[idx, 'code_comprehension_related'] = oracle_input['code_comprehension_related']
+                lc_instances.at[idx, 'problem_encountered'] = oracle_input['problem_encountered']
+                lc_instances.at[idx, 'topic_keywords'] = oracle_input['topic_keywords']
+                print()
+
+                # unlabeled_dataset has less columns than training_dataset, so use pandas.concat.
+                training_dataset = pandas.concat([training_dataset, lc_instances.loc[[idx]]], ignore_index=True)
+
+                # Append the last row (the newly labeled instance) to file.
+                training_dataset.iloc[[-1]].to_csv(training_dataset_file, header=False, index=False, mode='a')
+
+            # Retrain the model with newly labeled dataset.
+            X_train = training_dataset[self.FEATURES]
+            y_train = training_dataset[self.LABEL]
+            classifier, _, new_report_dict = self.__train_model(classifier, X_train, X_test, y_train, y_true)
+
+            # Report the classifier performance, and ask the user to determine whether the stopping criteria is met.           
+            if self.__test_stopping_criteria(iter_ctr, batch_size, new_report_dict, report_dict):
+                return classifier
 
     def __train_model(self, classifier, X_train: DataFrame, X_test: DataFrame, y_train: DataFrame, y_true: DataFrame):
         classifier.fit(X_train, y_train)
@@ -321,12 +296,43 @@ class MachineLearning:
 
         return result
 
+    def __test_stopping_criteria(self, iter_ctr: int, batch_size: int, new_rpt_dict: dict, orig_rpt_dict: dict):
+        """Display the classification report comparison to the user, showing the difference in performance before and after the Active Learning iteration.
+        Then prompt the user whether to continue or stop Active Learning.
+
+        Args:
+            iter_ctr (int): Number of iterations active learning repeated.
+            batch_size (int): Number of instances of each iteration.
+            new_rpt_dict (dict): Classification report after the active learning iteration.
+            orig_rpt_dict (dict): Classification report before the active learning iteration.
+
+        Returns:
+            bool: true - stop active learning, false - continue active learning.
+        """
+        self.logger.info(f'Active Learning Iteration "{iter_ctr}" with {batch_size} instances finished.')
+        self.logger.info(
+            f'Label "No"  - Precision - Before: {orig_rpt_dict["No"]["precision"]:.8f}, After: {new_rpt_dict["No"]["precision"]:.8f}, Diff: {(new_rpt_dict["No"]["precision"] - orig_rpt_dict["No"]["precision"]):.8f}')
+        self.logger.info(
+            f'Label "No"  - Recall    - Before: {orig_rpt_dict["No"]["recall"]:.8f}, After: {new_rpt_dict["No"]["recall"]:.8f}, Diff: {(new_rpt_dict["No"]["recall"] - orig_rpt_dict["No"]["recall"]):.8f}')
+        self.logger.info(
+            f'Label "Yes" - Precision - Before: {orig_rpt_dict["Yes"]["precision"]:.8f}, After: {new_rpt_dict["Yes"]["precision"]:.8f}, Diff: {(new_rpt_dict["Yes"]["precision"] - orig_rpt_dict["Yes"]["precision"]):.8f}')
+        self.logger.info(
+            f'Label "Yes" - Recall    - Before: {orig_rpt_dict["Yes"]["recall"]:.8f}, After: {new_rpt_dict["Yes"]["recall"]:.8f}, Diff: {(new_rpt_dict["Yes"]["recall"] - orig_rpt_dict["Yes"]["recall"]):.8f}')
+        self.logger.info(
+            f'Accuracy                - Before: {orig_rpt_dict["accuracy"]:.8f}, After: {new_rpt_dict["accuracy"]:.8f}, Diff: {(new_rpt_dict["accuracy"] - orig_rpt_dict["accuracy"]):.8f}')
+
+        while True:
+            choice = input('Continue Active Learning? (y/n) ').lower()
+            if choice == 'y' or choice == 'n':
+                return choice == 'n'
+
     def train_test_split(self, data: DataFrame):
         """Split data into training and test datasets.
 
         Args:
             data (DataFrame): Sample dataset with the labeled data.
-         Returns:
+
+        Returns:
             tuple: (
                 DataFrame: Training dataset.
                 DataFrame: Test dataset.
