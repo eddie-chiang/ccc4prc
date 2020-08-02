@@ -56,14 +56,15 @@ class MachineLearning:
         while True:
             iter_ctr += 1
             self.logger.info(f'Active Learning Iteration "{iter_ctr}" begins...')
-
-            # Filter out rows already labeled in training and test datasets.
+            
+            self.logger.info(f'Scenario: Pool-based sampling...')
+            # Draw instances from the unlabelled dataset, filter out already labeled instances in training and test datasets.
             comment_ids = pandas.concat([training_dataset['comment_id'], test_dataset['comment_id']])
             unlabeled_dataset = unlabeled_dataset[~unlabeled_dataset.comment_id.isin(comment_ids)]
 
+            self.logger.info(f'Query Strategy: Least Confidence...')
             pool = unlabeled_dataset[self.FEATURES]
             pool_pred_prob = classifier.predict_proba(pool)
-
             lc_indices = self.__query_least_confident(pool_pred_prob, batch_size)
             lc_instances = unlabeled_dataset.iloc[lc_indices]
             lc_instances_prob = [pool_pred_prob[i] for i in lc_indices]
