@@ -45,14 +45,10 @@ class MachineLearning:
         classifier, report, report_dict = self.__train_model(classifier, X_train, X_test, y_train, y_true)
         self.logger.info(f'{report}')
 
-        # Scenario: Pool-based Sampling.
-        # Query Strategy: Least Confidence.
-
+        self.logger.info('......Active Learning Starts......')
         batch_size = 30
         iter_ctr = 0
-
-        self.logger.info('......Active Learning Starts......')
-
+        
         while True:
             iter_ctr += 1
             self.logger.info(f'Active Learning Iteration "{iter_ctr}" begins...')
