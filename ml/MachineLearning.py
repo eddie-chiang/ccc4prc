@@ -92,10 +92,10 @@ class MachineLearning:
             # Retrain the model with newly labeled dataset.
             X_train = training_dataset[self.FEATURES]
             y_train = training_dataset[self.LABEL]
-            classifier, _, new_report_dict = self.__train_model(classifier, X_train, X_test, y_train, y_true)
+            classifier, new_report, new_report_dict = self.__train_model(classifier, X_train, X_test, y_train, y_true)
 
             # Report the classifier performance, and ask the user to determine whether the stopping criteria is met.
-            if self.__test_stopping_criteria(iter_ctr, batch_size, new_report_dict, report_dict):
+            if self.__test_stopping_criteria(iter_ctr, batch_size, new_report, new_report_dict, report_dict):
                 return classifier
 
     def __train_model(self, classifier, X_train: DataFrame, X_test: DataFrame, y_train: DataFrame, y_true: DataFrame):
@@ -240,13 +240,14 @@ class MachineLearning:
 
         return result
 
-    def __test_stopping_criteria(self, iter_ctr: int, batch_size: int, new_rpt_dict: dict, orig_rpt_dict: dict):
+    def __test_stopping_criteria(self, iter_ctr: int, batch_size: int, new_rpt: str, new_rpt_dict: dict, orig_rpt_dict: dict):
         """Display the classification report comparison to the user, showing the difference in performance before and after the Active Learning iteration.
         Then prompt the user whether to continue or stop Active Learning.
 
         Args:
             iter_ctr (int): Number of iterations active learning repeated.
             batch_size (int): Number of instances of each iteration.
+            new_rpt (str): Classification report text after the active learning iteration.
             new_rpt_dict (dict): Classification report after the active learning iteration.
             orig_rpt_dict (dict): Classification report before the active learning iteration.
 
@@ -254,6 +255,7 @@ class MachineLearning:
             bool: true - stop active learning, false - continue active learning.
         """
         self.logger.info(f'Active Learning Iteration "{iter_ctr}" with {batch_size} instances finished.')
+        self.logger.info(f'{new_rpt}')
         self.logger.info(
             f'Label "No"  - Precision - Before: {orig_rpt_dict["No"]["precision"]:.8f}, After: {new_rpt_dict["No"]["precision"]:.8f}, Diff: {(new_rpt_dict["No"]["precision"] - orig_rpt_dict["No"]["precision"]):.8f}')
         self.logger.info(
