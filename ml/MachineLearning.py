@@ -47,7 +47,7 @@ class MachineLearning:
         self.logger.info(f'{report}')
 
         report_list = [report]
-        report_dict_list = [report_dict]        
+        report_dict_list = [report_dict]
 
         self.logger.info('......Active Learning Starts......')
         n_instances = 0
@@ -69,14 +69,15 @@ class MachineLearning:
             self.logger.info(
                 f'Instance No. {n_instances}, label ({classifier.classes_[0]}): {instance_prob[0]:.2%}, label ({classifier.classes_[1]}): {instance_prob[1]:.2%}, comment_id: {instance["comment_id"]}')
 
-            code_comprehension_related, problem_encountered, topic_keywords = self.__label_instance_by_oracle(
+            code_comprehension_related, topic_keywords, problem_encountered = self.__label_instance_by_oracle(
                 instance['body'], instance['dialogue_act_classification_ml'], instance['comment_is_by_author'])
 
             instance['code_comprehension_related'] = code_comprehension_related
             instance['problem_encountered'] = problem_encountered
             instance['topic_keywords'] = topic_keywords
 
-            training_dataset = training_dataset.append(instance, ignore_index=True)
+            # unlabeled_dataset instance has less columns than training_dataset, so use pandas.concat.
+            training_dataset = pandas.concat([training_dataset, DataFrame(instance, index=[0])], ignore_index=True)
 
             # Append the last row (the newly labeled instance) to file.
             # Use -1, as pandas.to_csv() appends a newline at the EOF.
