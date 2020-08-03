@@ -253,26 +253,33 @@ class MachineLearning:
         x = range(len(report_dict_list))
         df = DataFrame({
             'x': x,
-            'Label "No" - Precision': [i['No']['precision'] for i in report_dict_list],
-            'Label "No" - Recall': [i['No']['recall'] for i in report_dict_list],
-            'Label "No" - F1 Score': [i['No']['f1-score'] for i in report_dict_list],
-            'Label "Yes" - Precision': [i['Yes']['precision'] for i in report_dict_list],
-            'Label "Yes" - Recall': [i['Yes']['recall'] for i in report_dict_list],
-            'Label "Yes" - F1 Score': [i['Yes']['f1-score'] for i in report_dict_list],
+            'no_precision': [i['No']['precision'] for i in report_dict_list],
+            'no_recall': [i['No']['recall'] for i in report_dict_list],
+            'no_f1_score': [i['No']['f1-score'] for i in report_dict_list],
+            'yes_precision': [i['Yes']['precision'] for i in report_dict_list],
+            'yes_recall': [i['Yes']['recall'] for i in report_dict_list],
+            'yes_f1_score': [i['Yes']['f1-score'] for i in report_dict_list],
             'Accuracy': [i['accuracy'] for i in report_dict_list]})
 
         with pyplot.style.context('seaborn-white'):
-            pyplot.title('Classification Report')
-            pyplot.xlabel('Number of Query Instances')
-            pyplot.xticks(x)
-            pyplot.plot('x', 'Label "No" - Precision', data=df, marker='o', markerfacecolor='blue', markersize=12, color='skyblue', linewidth=4)
-            pyplot.plot('x', 'Label "No" - Recall', data=df, marker='+', color='olive', linewidth=2)
-            pyplot.plot('x', 'Label "No" - F1 Score', data=df, marker='', color='orange', linewidth=2)
-            pyplot.plot('x', 'Label "Yes" - Precision', data=df, marker='*', color='brown', linewidth=2, linestyle='dashed')
-            pyplot.plot('x', 'Label "Yes" - Recall', data=df, marker='', color='green', linewidth=2)
-            pyplot.plot('x', 'Label "Yes" - F1 Score', data=df, marker='+', color='purple', linewidth=2, linestyle='dashed')
-            pyplot.plot('x', 'Accuracy', data=df, marker='o', color='red', linewidth=2)
-            pyplot.legend()
+            _, axs = pyplot.subplots(1, 3)
+            pyplot.setp(axs, xticks=x, xlabel='Number of Query Instances')
+
+            axs[0].set_title('Label "No"')
+            axs[0].plot('x', 'no_precision', data=df, marker='o', color='red', label='Precision')
+            axs[0].plot('x', 'no_recall', data=df, marker='+', color='orange', label='Recall')
+            axs[0].plot('x', 'no_f1_score', data=df, marker='*', color='blue', label='F1 Score')
+            axs[0].legend()
+
+            axs[1].set_title('Label "Yes"')
+            axs[1].plot('x', 'yes_precision', data=df, marker='o', color='red', label='Precision')
+            axs[1].plot('x', 'yes_recall', data=df, marker='+', color='orange', label='Recall')
+            axs[1].plot('x', 'yes_f1_score', data=df, marker='*', color='blue', label='F1 Score')
+            axs[1].legend()
+
+            axs[2].set_title('Accuracy')
+            axs[2].plot('x', 'Accuracy', data=df, marker='o', color='red', linewidth=2)
+
             pyplot.show(block=False)
 
         while True:
