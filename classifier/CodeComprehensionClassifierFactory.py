@@ -60,7 +60,7 @@ class CodeComprehensionClassifierFactory:
 
         full_pipeline = Pipeline(
             steps=[
-                ("preprocessor", column_transformer),
+                ('preprocessor', column_transformer),
                 ('classifier', SVC(kernel='linear', probability=True))],
             verbose=False)
 
