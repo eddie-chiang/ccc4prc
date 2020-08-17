@@ -43,12 +43,17 @@ class CodeComprehensionClassifierFactory:
         column_transformer = ColumnTransformer(
             transformers=[
                 ('body_bow_vectorizer', TfidfVectorizer(stop_words=None, ngram_range=(2, 2)), 'body'),
-                ('categorical_transformer', OneHotEncoder(categories=one_hot_encoder_categories),
-                 ['dialogue_act_classification_ml', 'comment_is_by_author']),
+                (
+                    'categorical_transformer',
+                    OneHotEncoder(categories=one_hot_encoder_categories),
+                    ['dialogue_act_classification_ml', 'comment_is_by_author']
+                ),
+                ('author_transformer', OneHotEncoder(categories=[[False, True]]), ['comment_is_by_author']),
             ],
             transformer_weights={
                 'body_bow_vectorizer': 1,
                 'categorical_transformer': 3.8,
+                'author_transformer': 1449,
             },
             verbose=False)
 
