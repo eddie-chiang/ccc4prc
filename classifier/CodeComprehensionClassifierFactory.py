@@ -48,7 +48,7 @@ class CodeComprehensionClassifierFactory:
             ],
             transformer_weights={
                 'body_bow_vectorizer': 1,
-                'categorical_transformer': 10,
+                'categorical_transformer': 3.8,
             },
             verbose=False)
 
