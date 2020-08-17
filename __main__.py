@@ -63,9 +63,9 @@ def main():
             training_dataset.to_csv(training_dataset_file, header=True, index=False, mode='w')
             test_dataset.to_csv(test_dataset_file, header=True, index=False, mode='w')
 
-        unlabeled_csv_file = pandas.read_csv(cfg['machine_learning']['unlabeled_csv_file'].as_filename())
+        unlabeled_dataset = pandas.read_csv(cfg['machine_learning']['unlabeled_csv_file'].as_filename())
 
-        ml.active_learn(training_dataset, training_dataset_file, test_dataset, unlabeled_csv_file)
+        ml.active_learn(training_dataset, training_dataset_file, test_dataset, unlabeled_dataset)
 
     # # Use the model to classify unlabeled data (BigQuery results from the CSV file).
     # comments = collections.defaultdict(set)
