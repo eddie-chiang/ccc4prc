@@ -52,8 +52,8 @@ class CodeComprehensionClassifierFactory:
                 ),
             ],
             transformer_weights={
-                'body_bow_vectorizer': 1,
-                'categorical_transformer': 3.8,
+                'body_bow_vectorizer': 3,
+                'categorical_transformer': 1,
             },
             verbose=False)
 
