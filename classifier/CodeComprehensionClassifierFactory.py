@@ -42,7 +42,7 @@ class CodeComprehensionClassifierFactory:
 
         column_transformer = ColumnTransformer(
             transformers=[
-                ('body_bow_vectorizer', TfidfVectorizer(stop_words=None, ngram_range=(2, 2)), 'body'),
+                ('body_bow_vectorizer', TfidfVectorizer(tokenizer=LemmaTokenizer(), stop_words=None, ngram_range=(2, 2)), 'body'),
                 (
                     'categorical_transformer',
                     OneHotEncoder(categories=one_hot_encoder_categories),
