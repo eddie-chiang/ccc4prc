@@ -24,10 +24,11 @@ def main():
     logger.info('Program started.')
 
     dac_factory = DialogueActClassifierFactory()
-    dac_factory.get_classifier(Path(cfg['dialogue_act_classification']['classifier_file'].as_filename(
-    )), cfg['dialogue_act_classification']['test_set_percentage'].as_number())
+    dac_clf = dac_factory.get_classifier(
+        Path(cfg['dialogue_act_classification']['classifier_file'].as_filename()),
+        cfg['dialogue_act_classification']['test_set_percentage'].as_number())
 
-    input_result = "y"  # input('Generate Manual Labelling File? (y/n): ')
+    input_result = input('Generate Manual Labelling File? (y/n): ')
     if is_yes(input_result):
         csv_file = Path(cfg['bigquery']['pull_request_comments_results_csv_file'].as_filename())
 
@@ -35,9 +36,9 @@ def main():
         manual_labelling_file_generator = FileGenerator()
         manual_labelling_file_generator.generate(classified_csv_file)
 
-    input_result = "y"  # input('Perform Machine Learning? (y/n): ')
+    input_result = input('Perform Machine Learning? (y/n): ')
     if is_yes(input_result):
-        ml = MachineLearning(dac_factory.get_classifier().labels())
+        ml = MachineLearning(dac_clf.labels())
 
         labeled_seed_excel_file = cfg['machine_learning']['labeled_seed_excel_file'].as_filename()
         dataset_dir = Path(labeled_seed_excel_file).parent
