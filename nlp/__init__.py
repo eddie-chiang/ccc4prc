@@ -1,2 +1,1 @@
-from .DialogueActClassifierFactory import DialogueActClassifierFactory
 from .LemmaTokenizer import LemmaTokenizer

@@ -3,9 +3,10 @@ import logging
 import pickle
 from pathlib import Path
 
-import nltk
-import pandas
+from nltk import NaiveBayesClassifier, corpus, word_tokenize
+from nltk.classify import accuracy
 from nltk.metrics.scores import precision, recall
+from pandas import read_csv
 from tqdm import tqdm
 
 
@@ -13,31 +14,39 @@ class DialogueActClassifierFactory:
     """Factory to create a classifier for dialogue act classification.
     """
 
-    def __init__(self, trained_classifier_file: Path, retrain_classifier: bool, test_set_percentage: int):
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.clf = None
+
+    def get_classifier(self, classifier_file: Path, test_set_percentage: int) -> NaiveBayesClassifier:
         """Train the classifier and persist the model to the specified file, or load from an existing model.
 
         Args:
-            trained_classifier_file (Path): A Path object that points to the trained classifier .pickle file.
-            retrain_classifier (bool): If the trained classifier .pickle file already exists, whether to retrain the classifier. If the .pickle file does not exist, then a new dialogue act classifier will be trained, and save to trained_classifier_file.
+            classifier_file (Path): A Path object that points to the trained classifier .pickle file.
             test_set_percentage (int): The percentage of labeled NPS Chat corpus to be used as the test set (remainder will be used as the train set).
-        """
-        self.logger = logging.getLogger(self.__class__.__name__)
 
-        self.test_set = None
-        if trained_classifier_file.is_file() and retrain_classifier == False:
-            with open(trained_classifier_file, mode='rb') as f:
-                self.dialogue_act_classifier = pickle.load(f)
+        Returns:
+            NaiveBayesClassifier: Trained classifier.
+        """
+        if self.clf != None:
+            return self.clf
+
+        if classifier_file.is_file():
+            with open(classifier_file, mode='rb') as f:
+                self.clf = pickle.load(f)
                 self.logger.info('Loaded trained dialogue act classifier.')
             _, _, self.test_set = self.__get_featuresets(test_set_percentage)
         else:
             self.logger.info('Training dialogue act classifier.')
-            self.dialogue_act_classifier, self.test_set = self.__train(test_set_percentage)
+            self.clf, self.test_set = self.__train(test_set_percentage)
 
-            with open(trained_classifier_file, mode='wb') as f:
-                pickle.dump(self.dialogue_act_classifier, f)
+            with open(classifier_file, mode='wb') as f:
+                pickle.dump(self.clf, f)
                 self.logger.info('Saved trained dialogue act classifier.')
 
-    def classify(self, dialogue: str):
+        return self.clf
+
+    def classify(self, dialogue: str) -> str:
         """Classify the given featureset.
 
         Args:
@@ -47,9 +56,9 @@ class DialogueActClassifierFactory:
             str: The dialogue act type.
         """
         unlabeled_data_features = self.__dialogue_act_features(dialogue)
-        return self.dialogue_act_classifier.classify(unlabeled_data_features)
+        return self.clf.classify(unlabeled_data_features)
 
-    def classify_prc_csv_file(self, prc_csv_file: Path):
+    def classify_prc_csv_file(self, prc_csv_file: Path) -> Path:
         """Classify the given Pull Request Comments .csv file.
 
         Args:
@@ -58,13 +67,13 @@ class DialogueActClassifierFactory:
         Returns:
             Path: The file path of the output file.
         """
-        classified_csv_file = Path(prc_csv_file.absolute().as_posix().replace('.csv', '_classified.csv'))
+        classified_csv_file = Path(prc_csv_file.absolute().as_posix().replace('.csv', '_dac_classified.csv'))
 
         if classified_csv_file.exists():
             self.logger.info(f'Output file already exists, stop further processing: {classified_csv_file}')
             return classified_csv_file
 
-        data_frame = pandas.read_csv(prc_csv_file)
+        data_frame = read_csv(prc_csv_file)
         tqdm.pandas(desc='Classifying Dialogue Act')
         data_frame['dialogue_act_classification_ml'] = data_frame.progress_apply(
             lambda row: self.classify(row['body']),
@@ -73,23 +82,22 @@ class DialogueActClassifierFactory:
         data_frame.to_csv(classified_csv_file, index=False, header=True, mode='w')
         self.logger.info(f'Dialogue Act Classification completed, output file: {classified_csv_file}')
         self.__classification_report()
-        
+
         return classified_csv_file
 
-    def __dialogue_act_features(self, dialogue: str):
+    def __dialogue_act_features(self, dialogue: str) -> dict:
         features = {}
-        for word in nltk.word_tokenize(dialogue):
+        for word in word_tokenize(dialogue):
             features['contains({})'.format(word.lower())] = True
         return features
 
     def __train(self, test_set_percentage: int):
-        featuresets, train_set, test_set = self.__get_featuresets(
-            test_set_percentage)
-        self.logger.info('Size of feature set: %d, train on %d instances, test on %d instances.' % (
-            len(featuresets), len(train_set), len(test_set)))
+        featuresets, train_set, test_set = self.__get_featuresets(test_set_percentage)
+        self.logger.info(
+            f'Size of feature set: {len(featuresets)}, train on {len(train_set)} instances, test on {len(test_set)} instances.')
 
         # Train the dialogue act classifier.
-        return nltk.NaiveBayesClassifier.train(train_set), test_set
+        return NaiveBayesClassifier.train(train_set), test_set
 
     def __classification_report(self):
         """Prints classifier accuracy, precisions and recalls.
@@ -106,7 +114,7 @@ class DialogueActClassifierFactory:
         Returns:
             float: Accuracy.
         """
-        return nltk.classify.accuracy(self.dialogue_act_classifier, self.test_set)
+        return accuracy(self.clf, self.test_set)
 
     def get_precision_and_recall(self):
         """Returns the Precision and Recall for each class label of the Dialogue Act Classifier.
@@ -125,7 +133,7 @@ class DialogueActClassifierFactory:
 
         for i, (features, class_label) in enumerate(self.test_set):
             refsets[class_label].add(i)
-            observed = self.dialogue_act_classifier.classify(features)
+            observed = self.clf.classify(features)
             testsets[observed].add(i)
 
         for class_label in refsets:
@@ -136,7 +144,7 @@ class DialogueActClassifierFactory:
 
     def __get_featuresets(self, test_set_percentage: int):
         # Extract the labeled basic messaging data.
-        posts = nltk.corpus.nps_chat.xml_posts()
+        posts = corpus.nps_chat.xml_posts()
 
         # Construct the train and test data by applying the feature extractor to each post, and create a new classifier.
         featuresets = [(self.__dialogue_act_features(post.text), post.get('class'))

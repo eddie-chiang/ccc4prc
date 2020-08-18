@@ -8,6 +8,5 @@ machine_learning:
   unlabeled_csv_file: ./data/sample/ghtorrent_bigquery_result_20190503_1403_cleaned_classified.csv
 
 dialogue_act_classification:
-  retrain_classifier: False # Whether to train/retrain Dialogue Act Classifier.
-  trained_classifier_file: ./models/trained_dialogue_act_classifier.pickle
-  test_set_percentage: 10 # Percentage of the labeled NPS Chat Corpus to be used as the test set (remainder will be the train set).
+  classifier_file: ./models/dialogue_act_classifier.pickle
+  test_set_percentage: 10 # Percentage of the labeled NPS Chat Corpus to be used as the test dataset (remainder will be the training dataset).

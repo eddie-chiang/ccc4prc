@@ -1,1 +1,2 @@
 from .CodeComprehensionClassifierFactory import CodeComprehensionClassifierFactory
+from .DialogueActClassifierFactory import DialogueActClassifierFactory

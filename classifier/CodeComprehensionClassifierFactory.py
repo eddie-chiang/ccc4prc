@@ -11,31 +11,18 @@ class CodeComprehensionClassifierFactory:
     """A factory that creates a classifier to predict code comprehension related Pull Request Comments."""
 
     @staticmethod
-    def get_classifier():
+    def get_classifier(dac_labels: list):
         """Defines classification algorithm, to be used in the supervised learning, to create a model.
+
+        Args:
+            dac_labels (list): Labels for Dialogue Act Classifications. Which should include: Accept, Bye, Clarify, Continuer, Emotion, Emphasis, Greet, Other, Reject, Statement, System, nAnswer, whQuestion, yAnswer, ynQuestion.
 
         Returns:
             classifier: A classifier implements "fit", "score", "predict", and "predict_proba" methods.
         """
 
         one_hot_encoder_categories = [
-            [
-                'Accept',
-                'Bye',
-                'Clarify',
-                'Continuer',
-                'Emotion',
-                'Emphasis',
-                'Greet',
-                'Other',
-                'Reject',
-                'Statement',
-                'System',
-                'whQuestion',
-                'yAnswer',
-                'nAnswer',
-                'ynQuestion'
-            ],
+            dac_labels,
             [
                 False,  # 0 should come before 1 for numerical columns.
                 True

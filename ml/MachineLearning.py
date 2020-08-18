@@ -18,8 +18,9 @@ class MachineLearning:
     FEATURES = ['body', 'dialogue_act_classification_ml', 'comment_is_by_author']
     LABEL = 'code_comprehension_related'
 
-    def __init__(self):
+    def __init__(self, dac_labels: list):
         self.logger = logging.getLogger(self.__class__.__name__)
+        self.dac_labels = dac_labels
 
     def active_learn(self, training_dataset: DataFrame, training_dataset_file: Path, test_dataset: DataFrame, unlabeled_dataset: DataFrame):
         """Using Scikit-learn, supervised training and active learning to create a machine learning model.
@@ -33,7 +34,7 @@ class MachineLearning:
             model: a trained machine learning model.
         """
 
-        classifier = CodeComprehensionClassifierFactory.get_classifier()
+        classifier = CodeComprehensionClassifierFactory.get_classifier(self.dac_labels)
 
         X_train = training_dataset[self.FEATURES]
         X_test = test_dataset[self.FEATURES]
