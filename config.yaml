@@ -5,7 +5,7 @@ bigquery:
 
 machine_learning:
   labeled_seed_excel_file: ../master-of-engineering/Assets/BigQuery/results_20190503_1403_cleaned_classified_manual_labeling.xlsx
-  unlabeled_csv_file: ./data/sample/ghtorrent_bigquery_result_20190503_1403_cleaned_classified.csv
+  unlabeled_csv_file: ./data/sample/ghtorrent_bigquery_result_20190503_1403_cleaned_dac_classified.csv
 
 dialogue_act_classification:
   classifier_file: ./models/dialogue_act_classifier.pickle
