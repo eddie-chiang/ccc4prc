@@ -4,9 +4,9 @@ from pathlib import Path
 import confuse
 import pandas
 
-from dialogueactclassification import Classifier
 from manuallabeling import FileGenerator
 from ml import MachineLearning
+from nlp import DialogueActClassifierFactory
 
 
 def main():
@@ -27,7 +27,7 @@ def main():
     if is_yes(input_result):
         csv_file = Path(cfg['bigquery']['pull_request_comments_results_csv_file'].as_filename())
 
-        dac_classifier = Classifier(
+        dac_classifier = DialogueActClassifierFactory(
             Path(cfg['dialogue_act_classification']['trained_classifier_file'].as_filename()),
             cfg['dialogue_act_classification']['retrain_classifier'].get(bool),
             cfg['dialogue_act_classification']['test_set_percentage'].as_number())
@@ -57,7 +57,7 @@ def main():
             sample_dataset = pandas.read_excel(io=labeled_seed_excel_file, sheet_name='Sample Dataset')
             training_dataset, test_dataset = ml.train_test_split(sample_dataset)
 
-            addl_test_dataset = pandas.read_excel(io=labeled_seed_excel_file, sheet_name='Additional Test Dataset')          
+            addl_test_dataset = pandas.read_excel(io=labeled_seed_excel_file, sheet_name='Additional Test Dataset')
             test_dataset = pandas.concat([test_dataset, addl_test_dataset], ignore_index=True)
 
             training_dataset.to_csv(training_dataset_file, header=True, index=False, mode='w')

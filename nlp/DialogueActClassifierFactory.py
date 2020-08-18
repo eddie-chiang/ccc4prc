@@ -9,22 +9,23 @@ from nltk.metrics.scores import precision, recall
 from tqdm import tqdm
 
 
-class Classifier:
-    """A classifier for dialogue act classification.
-
-    Args:
-        trained_classifier_file (Path): A Path object that points to the trained classifier .pickle file.
-        retrain_classifier (bool): If the trained classifier .pickle file already exists, whether to retrain the classifier.
-            If the .pickle file does not exist, then a new dialogue act classifier will be trained, and save to trained_classifier_file.
-        test_set_percentage (int): The percentage of labeled NPS Chat corpus to be used as the test set (remainder will be used as the train set).
+class DialogueActClassifierFactory:
+    """Factory to create a classifier for dialogue act classification.
     """
 
-    def __init__(self, trained_classifer_file, retrain_classifier: bool, test_set_percentage: int):
+    def __init__(self, trained_classifier_file: Path, retrain_classifier: bool, test_set_percentage: int):
+        """Train the classifier and persist the model to the specified file, or load from an existing model.
+
+        Args:
+            trained_classifier_file (Path): A Path object that points to the trained classifier .pickle file.
+            retrain_classifier (bool): If the trained classifier .pickle file already exists, whether to retrain the classifier. If the .pickle file does not exist, then a new dialogue act classifier will be trained, and save to trained_classifier_file.
+            test_set_percentage (int): The percentage of labeled NPS Chat corpus to be used as the test set (remainder will be used as the train set).
+        """
         self.logger = logging.getLogger(self.__class__.__name__)
 
         self.test_set = None
-        if trained_classifer_file.is_file() and retrain_classifier == False:
-            with open(trained_classifer_file, mode='rb') as f:
+        if trained_classifier_file.is_file() and retrain_classifier == False:
+            with open(trained_classifier_file, mode='rb') as f:
                 self.dialogue_act_classifier = pickle.load(f)
                 self.logger.info('Loaded trained dialogue act classifier.')
             _, _, self.test_set = self.__get_featuresets(test_set_percentage)
@@ -32,11 +33,11 @@ class Classifier:
             self.logger.info('Training dialogue act classifier.')
             self.dialogue_act_classifier, self.test_set = self.__train(test_set_percentage)
 
-            with open(trained_classifer_file, mode='wb') as f:
+            with open(trained_classifier_file, mode='wb') as f:
                 pickle.dump(self.dialogue_act_classifier, f)
                 self.logger.info('Saved trained dialogue act classifier.')
 
-    def classify(self, dialgoue: str):
+    def classify(self, dialogue: str):
         """Classify the given featureset.
 
         Args:
@@ -45,7 +46,7 @@ class Classifier:
         Returns: 
             str: The dialogue act type.
         """
-        unlabeled_data_features = self.__dialogue_act_features(dialgoue)
+        unlabeled_data_features = self.__dialogue_act_features(dialogue)
         return self.dialogue_act_classifier.classify(unlabeled_data_features)
 
     def classify_prc_csv_file(self, prc_csv_file: Path):
