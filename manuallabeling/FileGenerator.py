@@ -1,8 +1,9 @@
 import logging
 import math
-import pandas
 import random
 from pathlib import Path
+
+from pandas import read_csv
 
 
 class FileGenerator:
@@ -29,8 +30,8 @@ class FileGenerator:
                 f'Output file already exists, stop further processing: {final_csv}')
             return final_csv
 
-        data_frame = pandas.read_csv(csv_file, na_filter=False)
-        total_rows = data_frame.shape[0]
+        df = read_csv(csv_file, na_filter=False)
+        total_rows = df.shape[0]
         sample_size = self.__sample_size(total_rows)
         self.logger.info(
             f'No. of rows in {csv_file}: {total_rows}, sample size of 95% confidence level and 5% confidence interval: {sample_size}')
@@ -38,12 +39,13 @@ class FileGenerator:
         # Generate unique random numbers start from 0 as iloc has 0 based index.
         random_numbers = random.sample(range(0, total_rows - 1), sample_size)
 
-        data_frame = data_frame.iloc[random_numbers]
+        df = df.iloc[random_numbers]
         
-        data_frame['dialogue_act_classification_manual'] = ""
-        data_frame['topic_keywords'] = ""
+        df['topic_keywords'] = ''
+        df['code_comprehension_related'] = ''
+        df['problem_encountered'] = ''
 
-        data_frame.to_csv(final_csv, index=False, header=True, mode='w')
+        df.to_csv(final_csv, index=False, header=True, mode='w')
         self.logger.info(f'Generation completed, output file: {final_csv}')
         return final_csv
 
