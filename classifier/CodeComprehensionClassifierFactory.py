@@ -21,33 +21,40 @@ class CodeComprehensionClassifierFactory:
             classifier: A classifier implements "fit", "score", "predict", and "predict_proba" methods.
         """
 
-        one_hot_encoder_categories = [
-            dac_labels,
-            [
-                False,  # 0 should come before 1 for numerical columns.
-                True
-            ]
+        is_author_categories = [
+            False,  # 0 should come before 1 for numerical columns.
+            True
         ]
 
         column_transformer = ColumnTransformer(
             transformers=[
-                ('body_bow_vectorizer', TfidfVectorizer(tokenizer=LemmaTokenizer(), stop_words=None, ngram_range=(1, 2)), 'body'),
                 (
-                    'categorical_transformer',
-                    OneHotEncoder(categories=one_hot_encoder_categories),
-                    ['dialogue_act_classification_ml', 'comment_is_by_author']
+                    'body_tdidf_vectorizer',
+                    TfidfVectorizer(tokenizer=LemmaTokenizer(), stop_words='english', ngram_range=(1, 2)),
+                    'body'
+                ),
+                (
+                    'dac_transformer',
+                    OneHotEncoder(categories=[dac_labels]),
+                    ['dialogue_act_classification_ml']
+                ),
+                (
+                    'is_author_transformer',
+                    OneHotEncoder(categories=[is_author_categories]),
+                    ['comment_is_by_author']
                 ),
             ],
             transformer_weights={
-                'body_bow_vectorizer': 3,
-                'categorical_transformer': 1,
+                'body_tdidf_vectorizer': 4,
+                'dac_transformer': 1,
+                'is_author_transformer': 2,
             },
             verbose=False)
 
         classifier = Pipeline(
             steps=[
                 ('preprocessor', column_transformer),
-                ('classifier', SVC(kernel='linear', C=1.2, probability=True))],
+                ('classifier', SVC(kernel='linear', C=0.1, probability=True))],
             verbose=False)
 
         return classifier
