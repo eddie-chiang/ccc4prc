@@ -1,8 +1,8 @@
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.svm import SVC
 
 from nlp import LemmaTokenizer
 
@@ -54,7 +54,8 @@ class CodeComprehensionClassifierFactory:
         classifier = Pipeline(
             steps=[
                 ('preprocessor', column_transformer),
-                ('classifier', SVC(kernel='linear', C=0.1, probability=True))],
+                ('classifier', LogisticRegression(C=500000, solver='lbfgs'))
+            ],
             verbose=False)
 
         return classifier
