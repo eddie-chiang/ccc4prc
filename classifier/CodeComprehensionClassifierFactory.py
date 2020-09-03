@@ -29,7 +29,7 @@ class CodeComprehensionClassifierFactory:
         column_transformer = ColumnTransformer(
             transformers=[
                 (
-                    'body_tdidf_vectorizer',
+                    'body_tfidf_vectorizer',
                     TfidfVectorizer(tokenizer=LemmaTokenizer(), stop_words='english', ngram_range=(1, 2)),
                     'body'
                 ),
@@ -45,7 +45,7 @@ class CodeComprehensionClassifierFactory:
                 ),
             ],
             transformer_weights={
-                'body_tdidf_vectorizer': 4,
+                'body_tfidf_vectorizer': 4,
                 'dac_transformer': 1,
                 'is_author_transformer': 2,
             },
