@@ -140,7 +140,7 @@ class DialogueActClassifierFactory:
         """
         cm = self.get_confusion_matrix()
         df_cm = DataFrame(cm._confusion, index=cm._values, columns=cm._values)
-        self.__pretty_plot_confusion_matrix(df_cm)
+        self.__pretty_plot_confusion_matrix(df_cm, fmt='.1f', fz=8)
 
     def get_precision_and_recall(self):
         """Returns the Precision and Recall for each class label of the Dialogue Act Classifier.
@@ -221,13 +221,13 @@ class DialogueActClassifierFactory:
             else:
                 per_ok = per_err = 0
 
-            per_ok_s = ['%.2f%%' % (per_ok), '100%'][per_ok == 100]
+            per_ok_s = ['%.1f%%' % (per_ok), '100%'][per_ok == 100]
 
             # text to DEL
             text_del.append(oText)
 
             # text to ADD
-            font_prop = font_manager.FontProperties(weight='bold', size=fz)
+            font_prop = font_manager.FontProperties(size=fz)
             text_kwargs = dict(color='w', ha="center", va="center", gid='sum', fontproperties=font_prop)
             
             # Hide the instances count (cell_val) and error percentage (per_err).
@@ -260,7 +260,7 @@ class DialogueActClassifierFactory:
 
         else:
             if(per > 0):
-                txt = '%s\n%.2f%%' % (cell_val, per)
+                txt = '%s\n%.1f%%' % (cell_val, per)
             else:
                 if(show_null_values == 0):
                     txt = ''
@@ -329,8 +329,8 @@ class DialogueActClassifierFactory:
                              cbar=cbar, cmap=cmap, linecolor='w', fmt=fmt)
 
         # set ticklabels rotation
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, fontsize=10)
-        ax.set_yticklabels(ax.get_yticklabels(), rotation=25, fontsize=10)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=45, fontsize=fz)
+        ax.set_yticklabels(ax.get_yticklabels(), rotation=25, fontsize=fz)
 
         # Turn off all the ticks
         for t in ax.xaxis.get_major_ticks():
@@ -371,7 +371,7 @@ class DialogueActClassifierFactory:
             ax.text(item['x'], item['y'], item['text'], **item['kw'])
 
         #titles and legends
-        ax.set_title('Confusion Matrix')
+        # ax.set_title('Confusion Matrix')
         ax.set_xlabel(xlbl)
         ax.set_ylabel(ylbl)
         pyplot.tight_layout()  # set layout slim
