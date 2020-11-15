@@ -245,7 +245,7 @@ class DialogueActClassifierFactory:
             # Hide the instances count (cell_val) and error percentage (per_err).
             # lis_pos = [(oText._x, oText._y-0.3), (oText._x, oText._y), (oText._x, oText._y+0.3)]
             lis_pos = [(oText._x, oText._y)]
-            
+
             for i in range(len(lis_txt)):
                 newText = dict(x=lis_pos[i][0], y=lis_pos[i][1], text=lis_txt[i], kw=lis_kwa[i])
                 # print 'lin: %s, col: %s, newText: %s' %(lin, col, newText)
@@ -371,7 +371,7 @@ class DialogueActClassifierFactory:
             ax.text(item['x'], item['y'], item['text'], **item['kw'])
 
         #titles and legends
-        ax.set_title('Confusion matrix')
+        ax.set_title('Confusion Matrix')
         ax.set_xlabel(xlbl)
         ax.set_ylabel(ylbl)
         pyplot.tight_layout()  # set layout slim
