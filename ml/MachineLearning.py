@@ -16,7 +16,7 @@ class MachineLearning:
     """A machine learning class for supervised learning to create a model."""
 
     FEATURES = ['body', 'dialogue_act_classification_ml', 'comment_is_by_author']
-    LABEL = 'code_comprehension_related'
+    LABEL = 'program_comprehension_challenge'
 
     def __init__(self, dac_labels: list):
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -67,10 +67,10 @@ class MachineLearning:
             self.logger.info(
                 f'Instance No. {n_instances}, label ({classifier.classes_[0]}): {instance_prob[0]:.2%}, label ({classifier.classes_[1]}): {instance_prob[1]:.2%}, comment_id: {instance["comment_id"]}')
 
-            code_comprehension_related, topic_keywords, problem_encountered = self.__label_instance_by_oracle(
+            program_comprehension_challenge, topic_keywords, problem_encountered = self.__label_instance_by_oracle(
                 instance['body'], instance['dialogue_act_classification_ml'], instance['comment_is_by_author'])
 
-            instance['code_comprehension_related'] = code_comprehension_related
+            instance['program_comprehension_challenge'] = program_comprehension_challenge
             instance['problem_encountered'] = problem_encountered
             instance['topic_keywords'] = topic_keywords
 
@@ -127,7 +127,7 @@ class MachineLearning:
             dialogue_act_classification_ml (str): Dialogue act classification derived from Machine Learning.
             comment_is_by_author (bool): Is the comment by the pull request author?
         Returns:
-            (str, str, str): A tuple comprising the annotated result from the oracle: code_comprehension_related label, topic_keywords, and problem_encountered.
+            (str, str, str): A tuple comprising the annotated result from the oracle: program_comprehension_challenge label, topic_keywords, and problem_encountered.
         """
         print(f"body: {body}")
         print(f"dialogue_act_classification_ml: {dialogue_act_classification_ml}")
@@ -136,13 +136,13 @@ class MachineLearning:
         while True:
             oracle_input = input('Code Comprehension Related? (y/n) ').lower()
             if oracle_input == 'y' or oracle_input == 'n':
-                code_comprehension_related = 'Yes' if oracle_input == 'y' or oracle_input == 'yes' else 'No'
+                program_comprehension_challenge = 'Yes' if oracle_input == 'y' or oracle_input == 'yes' else 'No'
                 break
 
         topic_keywords = input('Topic keywords (semicolon separated)? ')
 
         problem_encountered = ''
-        if code_comprehension_related == 'Yes':
+        if program_comprehension_challenge == 'Yes':
             problem_encountered_type_1 = "What is the program supposed to do"
             problem_encountered_type_2 = "What was the developer's intention when writing this code"
             problem_encountered_type_3 = "Why was this code implemented this way"
@@ -172,7 +172,7 @@ class MachineLearning:
                         break
 
         print()
-        return code_comprehension_related, topic_keywords, problem_encountered
+        return program_comprehension_challenge, topic_keywords, problem_encountered
 
     def __test_stopping_criteria(self, n_instances: int, report_list: array, report_dict_list: array):
         """Display the classification report comparison to the user, showing the difference in performance before and after the Active Learning iteration.
@@ -246,7 +246,7 @@ class MachineLearning:
             target,
             test_size=0.2,  # 20%
             random_state=2019,  # An arbitrary seed so the results can be reproduced
-            stratify=target)  # Stratify the sample by the target (i.e. code_comprehension_related)
+            stratify=target)  # Stratify the sample by the target (i.e. program_comprehension_challenge)
 
         training_dataset = data.iloc[X_train.index]
         test_dataset = data.iloc[X_test.index]

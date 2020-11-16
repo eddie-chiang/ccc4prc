@@ -28,6 +28,8 @@ def main():
         Path(cfg['dialogue_act_classification']['classifier_file'].as_filename()),
         cfg['dialogue_act_classification']['test_set_percentage'].as_number())
 
+    dac_factory.print_confusion_matrix()
+
     input_result = input('Generate Manual Labelling File? (y/n): ')
     if is_yes(input_result):
         csv_file = Path(cfg['bigquery']['pull_request_comments_results_csv_file'].as_filename())

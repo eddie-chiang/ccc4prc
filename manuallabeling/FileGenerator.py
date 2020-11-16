@@ -42,7 +42,7 @@ class FileGenerator:
         df = df.iloc[random_numbers]
         
         df['topic_keywords'] = ''
-        df['code_comprehension_related'] = ''
+        df['program_comprehension_challenge'] = ''
         df['problem_encountered'] = ''
 
         df.to_csv(final_csv, index=False, header=True, mode='w')
