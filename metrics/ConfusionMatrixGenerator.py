@@ -12,11 +12,11 @@ class ConfusionMatrixGenerator:
     """
 
     @staticmethod
-    def print_confusion_matrix(confusion_matrix: numpy.ndarray, labels: list, number_formatting='.1f', font_size=8):
+    def print_confusion_matrix(confusion_matrix: numpy.ndarray, labels: list, figsize=[8, 8], number_formatting='.1f', font_size=8):
         """Produce a heatmap of the confusion matrix for the Dialogue Act Classifier.
         """
         df_cm = DataFrame(confusion_matrix, index=labels, columns=labels)
-        ConfusionMatrixGenerator.__pretty_plot_confusion_matrix(df_cm, fmt=number_formatting, fz=font_size)
+        ConfusionMatrixGenerator.__pretty_plot_confusion_matrix(df_cm, figsize=figsize, fmt=number_formatting, fz=font_size)
 
     def __get_new_fig(fn, figsize=[9, 9]):
         """ Init graphics """
