@@ -29,7 +29,6 @@ class ConfusionMatrixGenerator:
         """
         config cell text and colors
         and return text elements to add and to dell
-        @TODO: use fmt
         """
         text_add = []
         text_del = []
